@@ -394,7 +394,11 @@ async function main() {
   await insertAll(
     supabase,
     "stock_documents",
-    docs.map(({ lines: _lines, ...doc }) => doc),
+    docs.map((doc) => {
+      const row: Partial<Doc> = { ...doc };
+      delete row.lines;
+      return row;
+    }),
   );
   await insertAll(
     supabase,
