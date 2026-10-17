@@ -1,26 +1,202 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
+/* Design tokens — sama persis dengan docs/mockup-reference.html (Bagian 4 spec) */
+@theme {
+  --color-bg: #F7F8FA;
+  --color-white: #FFFFFF;
+  --color-ink: #0F172A;
+  --color-ink-2: #1E293B;
+  --color-ink-3: #475569;
+  --color-grey-1: #64748B;
+  --color-grey-2: #94A3B8;
+  --color-grey-3: #CBD5E1;
+  --color-line: #E2E8F0;
+  --color-line-2: #F1F5F9;
+  --color-primary: #1E3A5F;
+  --color-primary-2: #2563EB;
+  --color-primary-tint: #EFF6FF;
+  --color-primary-hover: #16304F;
+  --color-primary-soft: #DBEAFE;
+  --color-pos: #16A34A;
+  --color-pos-tint: #DCFCE7;
+  --color-pos-text: #166534;
+  --color-pos-hover: #15803D;
+  --color-warn: #EA580C;
+  --color-warn-tint: #FFEDD5;
+  --color-warn-text: #9A3412;
+  --color-neg: #DC2626;
+  --color-neg-tint: #FEE2E2;
+  --color-neg-text: #991B1B;
+  --color-neg-hover: #B91C1C;
+  --color-yellow: #CA8A04;
+  --color-yellow-tint: #FEF9C3;
+  --color-yellow-text: #854D0E;
+  --color-purple: #7C3AED;
+  --color-purple-tint: #EDE9FE;
+  --color-purple-text: #6B21A8;
+
+  --font-sans: var(--font-jakarta), -apple-system, sans-serif;
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
-
+html,
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--color-bg);
+  color: var(--color-ink);
+  font-family: var(--font-sans);
+  font-size: 14px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  min-width: 1280px;
+}
+
+.num {
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── Tabel data (mockup .data-table) ─────────────── */
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+.data-table thead th {
+  text-align: left;
+  padding: 11px 12px;
+  font-size: 10.5px;
+  font-weight: 700;
+  color: var(--color-grey-1);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  border-bottom: 1px solid var(--color-line);
+  background: var(--color-bg);
+  white-space: nowrap;
+}
+.data-table thead th.num { text-align: right; }
+.data-table thead th:first-child { border-top-left-radius: 8px; padding-left: 16px; }
+.data-table thead th:last-child { border-top-right-radius: 8px; padding-right: 16px; }
+.data-table tbody td {
+  padding: 13px 12px;
+  border-bottom: 1px solid var(--color-line-2);
+  color: var(--color-ink-2);
+  vertical-align: middle;
+}
+.data-table tbody td:first-child { padding-left: 16px; }
+.data-table tbody td:last-child { padding-right: 16px; }
+.data-table tbody td.num { text-align: right; font-weight: 500; }
+.data-table tbody td.num strong { font-weight: 700; }
+.data-table tbody tr { transition: background 0.12s; }
+.data-table tbody tr.clickable { cursor: pointer; }
+.data-table tbody tr.clickable:hover { background: var(--color-bg); }
+.data-table tbody tr:last-child td { border-bottom: none; }
+
+/* ── Tabel SKU di dalam modal (mockup .sku-row-table) ── */
+.sku-row-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12.5px;
+  margin-top: 8px;
+}
+.sku-row-table thead th {
+  text-align: left;
+  padding: 8px 10px;
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--color-grey-1);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  background: var(--color-bg);
+  border-bottom: 1px solid var(--color-line);
+}
+.sku-row-table thead th.num { text-align: right; }
+.sku-row-table thead th:first-child { border-top-left-radius: 8px; padding-left: 14px; }
+.sku-row-table thead th:last-child { border-top-right-radius: 8px; padding-right: 14px; }
+.sku-row-table tbody td {
+  padding: 10px;
+  border-bottom: 1px solid var(--color-line-2);
+  vertical-align: middle;
+}
+.sku-row-table tbody td.num { text-align: right; font-variant-numeric: tabular-nums; }
+.sku-row-table tbody td:first-child { padding-left: 14px; }
+.sku-row-table tbody td:last-child { padding-right: 14px; }
+.sku-row-table tfoot td {
+  padding: 10px;
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--color-ink);
+}
+.sku-row-table tfoot td:first-child { padding-left: 14px; }
+.qty-input {
+  width: 80px;
+  padding: 6px 10px;
+  border: 1px solid var(--color-line);
+  border-radius: 6px;
+  text-align: right;
+  font-family: inherit;
+  font-size: 12.5px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  background: var(--color-white);
+}
+.qty-input:focus { outline: none; border-color: var(--color-primary-2); }
+.qty-input.error { border-color: var(--color-neg); background: var(--color-neg-tint); }
+
+/* ── Form (mockup .form-field) ─────────────── */
+.form-label {
+  display: block;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--color-grey-1);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  margin-bottom: 7px;
+}
+.form-input {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid var(--color-line);
+  border-radius: 8px;
+  font-family: inherit;
+  font-size: 13px;
+  color: var(--color-ink);
+  font-weight: 500;
+  background: var(--color-white);
+}
+.form-input:focus { outline: none; border-color: var(--color-primary-2); }
+.form-input:disabled { background: var(--color-line-2); color: var(--color-grey-1); cursor: not-allowed; }
+.form-input.error { border-color: var(--color-neg); }
+textarea.form-input { resize: vertical; min-height: 60px; }
+.form-hint { font-size: 11px; color: var(--color-grey-1); margin-top: 4px; }
+.form-error { font-size: 11px; color: var(--color-neg); margin-top: 4px; font-weight: 600; }
+
+.select-input,
+.date-input {
+  padding: 9px 12px;
+  border: 1px solid var(--color-line);
+  border-radius: 10px;
+  font-family: inherit;
+  font-size: 12.5px;
+  color: var(--color-ink-2);
+  background: var(--color-white);
+}
+.select-input:focus,
+.date-input:focus { outline: none; border-color: var(--color-primary-2); }
+
+/* Mutasi list (mockup .mut-list) */
+.mut-entry {
+  display: grid;
+  grid-template-columns: 60px 1fr auto;
+  gap: 14px;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--color-line-2);
+  align-items: center;
+}
+.mut-entry:last-child { border-bottom: none; }
+
+@keyframes pulse-soft {
+  50% { opacity: 0.5; }
+}
+.skeleton {
+  background: var(--color-line-2);
+  border-radius: 6px;
+  animation: pulse-soft 1.4s ease-in-out infinite;
 }

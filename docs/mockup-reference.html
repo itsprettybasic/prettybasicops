@@ -1,0 +1,2046 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=1440">
+<title>Pretty Basic · PPIC</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #F7F8FA;
+    --white: #FFFFFF;
+    --ink: #0F172A;
+    --ink-2: #1E293B;
+    --ink-3: #475569;
+    --grey-1: #64748B;
+    --grey-2: #94A3B8;
+    --grey-3: #CBD5E1;
+    --line: #E2E8F0;
+    --line-2: #F1F5F9;
+    --primary: #1E3A5F;
+    --primary-2: #2563EB;
+    --primary-tint: #EFF6FF;
+    --pos: #16A34A;
+    --pos-tint: #DCFCE7;
+    --warn: #EA580C;
+    --warn-tint: #FFEDD5;
+    --neg: #DC2626;
+    --neg-tint: #FEE2E2;
+    --yellow: #CA8A04;
+    --yellow-tint: #FEF9C3;
+    --purple: #7C3AED;
+    --purple-tint: #EDE9FE;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body {
+    background: var(--bg);
+    color: var(--ink);
+    font-family: 'Plus Jakarta Sans', -apple-system, sans-serif;
+    font-size: 14px;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+    min-width: 1440px;
+  }
+  .app { display: flex; min-height: 100vh; }
+
+  /* ── Sidebar ────────────────────────────────── */
+  .sidebar {
+    width: 240px;
+    background: var(--white);
+    border-right: 1px solid var(--line);
+    padding: 24px 0;
+    height: 100vh;
+    position: fixed;
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto;
+    overflow-x: hidden;
+    transition: width 0.22s ease;
+    z-index: 20;
+  }
+  .sidebar.collapsed { width: 68px; }
+  .main { flex: 1; margin-left: 240px; padding: 28px 36px; min-height: 100vh; transition: margin-left 0.22s ease; }
+  .app.collapsed .main { margin-left: 68px; }
+
+  .sidebar-toggle {
+    position: fixed;
+    top: 36px;
+    left: 224px;
+    width: 28px; height: 28px;
+    background: var(--white);
+    border: 1px solid var(--line);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    z-index: 30;
+    transition: left 0.22s ease;
+    color: var(--grey-1);
+    box-shadow: 0 1px 3px rgba(15,23,42,0.08);
+  }
+  .sidebar-toggle:hover { color: var(--ink); border-color: var(--grey-3); }
+  .sidebar-toggle svg { width: 14px; height: 14px; transition: transform 0.22s ease; }
+  .app.collapsed .sidebar-toggle { left: 52px; }
+  .app.collapsed .sidebar-toggle svg { transform: rotate(180deg); }
+
+  .sidebar.collapsed .brand-text,
+  .sidebar.collapsed .nav-section-label,
+  .sidebar.collapsed .nav-item > span:not(.icon),
+  .sidebar.collapsed .nav-item .count,
+  .sidebar.collapsed .user-info { display: none; }
+  .sidebar.collapsed .brand-block { justify-content: center; padding: 0 14px 24px; }
+  .sidebar.collapsed .nav-item { justify-content: center; padding: 11px 0; position: relative; }
+  .sidebar.collapsed .nav-section-label { visibility: hidden; height: 2px; padding: 14px 0 0; }
+  .sidebar.collapsed .sidebar-footer { justify-content: center; padding: 16px 14px; }
+  .sidebar.collapsed .nav-item:hover::after {
+    content: attr(data-label);
+    position: absolute;
+    left: 60px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: var(--ink);
+    color: white;
+    padding: 6px 12px;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 500;
+    white-space: nowrap;
+    z-index: 100;
+    pointer-events: none;
+  }
+
+  .brand-block { padding: 0 24px 24px; display: flex; align-items: center; gap: 12px; }
+  .brand-logo {
+    width: 40px; height: 40px;
+    border-radius: 10px;
+    background: var(--primary);
+    color: white;
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 800; font-size: 18px; letter-spacing: -0.02em;
+    flex-shrink: 0;
+  }
+  .brand-text .name { font-weight: 700; font-size: 15px; letter-spacing: -0.01em; color: var(--ink); line-height: 1.2; }
+  .brand-text .sub { font-size: 11px; color: var(--grey-1); line-height: 1.3; margin-top: 2px; }
+
+  .nav-section-label {
+    padding: 20px 24px 10px;
+    font-size: 10.5px;
+    color: var(--grey-2);
+    letter-spacing: 0.14em;
+    font-weight: 600;
+    text-transform: uppercase;
+  }
+  .nav-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 24px;
+    color: var(--ink-3);
+    cursor: pointer;
+    font-size: 13.5px;
+    font-weight: 500;
+    transition: all 0.15s;
+    position: relative;
+    border-left: 3px solid transparent;
+  }
+  .nav-item:hover { color: var(--ink); background: var(--bg); }
+  .nav-item.active {
+    color: var(--primary);
+    background: var(--primary-tint);
+    border-left-color: var(--primary);
+    font-weight: 600;
+  }
+  .nav-item .icon { width: 18px; height: 18px; display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; }
+  .nav-item .icon svg { width: 18px; height: 18px; stroke-width: 1.8; }
+  .nav-item .count {
+    margin-left: auto;
+    font-size: 10.5px;
+    font-weight: 700;
+    background: var(--neg);
+    color: white;
+    padding: 1px 7px;
+    border-radius: 100px;
+  }
+
+  .sidebar-footer {
+    margin-top: auto;
+    padding: 16px 24px;
+    border-top: 1px solid var(--line);
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .avatar {
+    width: 36px; height: 36px; border-radius: 50%;
+    background: var(--primary);
+    color: white;
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 700; font-size: 13px;
+    flex-shrink: 0;
+  }
+  .user-name { font-size: 13px; font-weight: 600; color: var(--ink); }
+  .user-role { font-size: 11px; color: var(--grey-1); margin-top: 1px; }
+
+  /* ── Page header ────────────────────────────────── */
+  .page-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    margin-bottom: 24px;
+  }
+  .page-title { font-size: 24px; font-weight: 700; letter-spacing: -0.02em; color: var(--ink); }
+  .page-sub { font-size: 13.5px; color: var(--grey-1); margin-top: 6px; }
+  .date-pill {
+    padding: 9px 16px;
+    background: var(--white);
+    border: 1px solid var(--line);
+    border-radius: 100px;
+    font-size: 12.5px;
+    font-weight: 600;
+    color: var(--ink-2);
+  }
+
+  /* ── Stat grid ────────────────────────────────── */
+  .stat-grid { display: grid; gap: 16px; margin-bottom: 20px; }
+  .stat-grid.cols-4 { grid-template-columns: repeat(4, 1fr); }
+  .stat-grid.cols-5 { grid-template-columns: repeat(5, 1fr); }
+  .stat-grid.cols-6 { grid-template-columns: repeat(6, 1fr); }
+
+  .stat-card {
+    background: var(--white);
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    padding: 18px 20px;
+  }
+  .stat-card .stat-label {
+    display: flex; align-items: center; gap: 7px;
+    font-size: 10.5px;
+    font-weight: 700;
+    color: var(--grey-1);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    margin-bottom: 12px;
+  }
+  .stat-card .stat-label .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--grey-2); }
+  .stat-card .stat-label.neg .dot { background: var(--neg); }
+  .stat-card .stat-label.warn .dot { background: var(--warn); }
+  .stat-card .stat-label.pos .dot { background: var(--pos); }
+  .stat-card .stat-label.primary .dot { background: var(--primary-2); }
+  .stat-card .stat-label.yellow .dot { background: var(--yellow); }
+  .stat-card .stat-label.purple .dot { background: var(--purple); }
+
+  .stat-card .stat-value {
+    font-size: 28px;
+    font-weight: 800;
+    letter-spacing: -0.03em;
+    color: var(--ink);
+    line-height: 1;
+  }
+  .stat-card .stat-value.neg { color: var(--neg); }
+  .stat-card .stat-value.warn { color: var(--warn); }
+  .stat-card .stat-value.pos { color: var(--pos); }
+  .stat-card .stat-value .unit { font-size: 13px; font-weight: 600; color: var(--grey-1); margin-left: 3px; }
+  .stat-card .stat-sub { font-size: 11.5px; color: var(--grey-1); margin-top: 8px; }
+
+  /* ── Panel ────────────────────────────────── */
+  .panel {
+    background: var(--white);
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    padding: 20px 22px;
+    margin-bottom: 16px;
+  }
+  .panel-title { font-size: 15px; font-weight: 700; color: var(--ink); letter-spacing: -0.005em; }
+  .panel-sub { font-size: 12.5px; color: var(--grey-1); margin-top: 3px; }
+  .panel-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    margin-bottom: 16px;
+    gap: 16px;
+  }
+
+  /* ── Toolbar ────────────────────────────────── */
+  .toolbar {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 16px;
+    flex-wrap: wrap;
+  }
+  .search-input {
+    padding: 9px 14px 9px 36px;
+    background: var(--white);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    font-family: inherit;
+    font-size: 13px;
+    color: var(--ink);
+    width: 280px;
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%2394A3B8' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><circle cx='11' cy='11' r='8'/><path d='m21 21-4.3-4.3'/></svg>");
+    background-repeat: no-repeat;
+    background-position: 12px center;
+  }
+  .search-input:focus { outline: none; border-color: var(--primary-2); }
+
+  .filter-chip {
+    padding: 8px 14px;
+    background: var(--white);
+    border: 1px solid var(--line);
+    border-radius: 100px;
+    font-family: inherit;
+    font-size: 12.5px;
+    font-weight: 500;
+    color: var(--ink-3);
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .filter-chip:hover { border-color: var(--grey-3); }
+  .filter-chip.active {
+    background: var(--primary);
+    color: white;
+    border-color: var(--primary);
+  }
+  .filter-chip .count {
+    background: rgba(255,255,255,0.2);
+    padding: 1px 7px;
+    border-radius: 100px;
+    font-size: 11px;
+    font-weight: 600;
+  }
+  .filter-chip:not(.active) .count { background: var(--line-2); color: var(--grey-1); }
+
+  .date-input, .select-input {
+    padding: 9px 12px;
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    font-family: inherit;
+    font-size: 12.5px;
+    color: var(--ink-2);
+    background: var(--white);
+  }
+
+  .btn {
+    padding: 9px 16px;
+    background: var(--white);
+    color: var(--ink-2);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    transition: all 0.15s;
+  }
+  .btn:hover { border-color: var(--grey-3); }
+  .btn-primary {
+    padding: 9px 18px;
+    background: var(--primary);
+    color: white;
+    border: 1px solid var(--primary);
+    border-radius: 10px;
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .btn-primary:hover { background: #16304F; }
+  .btn-blue { background: var(--primary-2); border-color: var(--primary-2); }
+  .btn-blue:hover { background: #1D4ED8; }
+  .btn-pos {
+    background: var(--pos);
+    color: white;
+    border: 1px solid var(--pos);
+    padding: 9px 16px;
+    border-radius: 10px;
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .btn-pos:hover { background: #15803D; }
+  .btn-neg {
+    background: var(--neg);
+    color: white;
+    border: 1px solid var(--neg);
+    padding: 9px 16px;
+    border-radius: 10px;
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .btn-neg:hover { background: #B91C1C; }
+  .btn-sm { padding: 6px 10px; font-size: 12px; }
+
+  /* ── Table ────────────────────────────────── */
+  .data-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  .data-table thead th {
+    text-align: left;
+    padding: 11px 12px;
+    font-size: 10.5px;
+    font-weight: 700;
+    color: var(--grey-1);
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    border-bottom: 1px solid var(--line);
+    background: var(--bg);
+    white-space: nowrap;
+  }
+  .data-table thead th.num { text-align: right; }
+  .data-table thead th:first-child { border-top-left-radius: 8px; padding-left: 16px; }
+  .data-table thead th:last-child { border-top-right-radius: 8px; padding-right: 16px; }
+  .data-table tbody td {
+    padding: 13px 12px;
+    border-bottom: 1px solid var(--line-2);
+    color: var(--ink-2);
+    vertical-align: middle;
+  }
+  .data-table tbody td:first-child { padding-left: 16px; }
+  .data-table tbody td:last-child { padding-right: 16px; }
+  .data-table tbody td.num {
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+    font-weight: 500;
+  }
+  .data-table tbody td.num strong { font-weight: 700; }
+  .data-table tbody tr { transition: background 0.12s; cursor: pointer; }
+  .data-table tbody tr:hover { background: var(--bg); }
+  .data-table tbody tr:last-child td { border-bottom: none; }
+
+  .cell-primary { font-weight: 600; color: var(--ink); }
+  .cell-sub { font-size: 11.5px; color: var(--grey-1); margin-top: 2px; }
+  .cell-sku { font-size: 11.5px; color: var(--grey-1); font-weight: 500; }
+
+  /* ── Badges ────────────────────────────────── */
+  .badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 3px 9px;
+    border-radius: 100px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.01em;
+    white-space: nowrap;
+  }
+  .badge.pos { background: var(--pos-tint); color: #166534; }
+  .badge.warn { background: var(--warn-tint); color: #9A3412; }
+  .badge.neg { background: var(--neg-tint); color: #991B1B; }
+  .badge.info { background: var(--primary-tint); color: var(--primary); }
+  .badge.yellow { background: var(--yellow-tint); color: #854D0E; }
+  .badge.purple { background: var(--purple-tint); color: #6B21A8; }
+  .badge.grey { background: var(--line-2); color: var(--ink-3); }
+
+  .rank {
+    display: inline-flex;
+    align-items: center; justify-content: center;
+    width: 22px; height: 22px;
+    border-radius: 6px;
+    font-size: 11px;
+    font-weight: 800;
+  }
+  .rank.a { background: var(--primary); color: white; }
+  .rank.b { background: #DBEAFE; color: var(--primary); }
+  .rank.c { background: var(--line-2); color: var(--grey-1); }
+
+  /* ── Form ────────────────────────────────── */
+  .form-field { margin-bottom: 16px; }
+  .form-field label {
+    display: block;
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--grey-1);
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    margin-bottom: 7px;
+  }
+  .form-field input, .form-field select, .form-field textarea {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    font-family: inherit;
+    font-size: 13px;
+    color: var(--ink);
+    font-weight: 500;
+    background: var(--white);
+  }
+  .form-field textarea { resize: vertical; min-height: 60px; }
+  .form-field input:focus, .form-field select:focus, .form-field textarea:focus {
+    outline: none;
+    border-color: var(--primary-2);
+  }
+  .form-field .hint { font-size: 11px; color: var(--grey-1); margin-top: 4px; }
+  .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .form-row-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; }
+
+  /* ── Combobox (searchable dropdown) ────────────────────────────────── */
+  .combo { position: relative; }
+  .combo input {
+    width: 100%;
+    padding: 10px 36px 10px 12px;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    font-family: inherit;
+    font-size: 13px;
+    color: var(--ink);
+    font-weight: 500;
+    background: var(--white);
+  }
+  .combo input:focus { outline: none; border-color: var(--primary-2); }
+  .combo::after {
+    content: '';
+    position: absolute;
+    right: 14px;
+    top: 50%;
+    transform: translateY(-30%);
+    width: 8px; height: 8px;
+    border-right: 1.5px solid var(--grey-1);
+    border-bottom: 1.5px solid var(--grey-1);
+    transform: translateY(-70%) rotate(45deg);
+    pointer-events: none;
+  }
+  .combo-dropdown {
+    display: none;
+    position: absolute;
+    top: calc(100% + 4px);
+    left: 0; right: 0;
+    background: var(--white);
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    max-height: 220px;
+    overflow-y: auto;
+    z-index: 10;
+    box-shadow: 0 8px 24px rgba(15,23,42,0.08);
+  }
+  .combo.open .combo-dropdown { display: block; }
+  .combo-opt {
+    padding: 10px 14px;
+    font-size: 13px;
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    border-bottom: 1px solid var(--line-2);
+  }
+  .combo-opt:last-child { border-bottom: none; }
+  .combo-opt:hover { background: var(--primary-tint); }
+  .combo-opt .sku-code { font-family: inherit; font-size: 11px; color: var(--grey-1); font-weight: 500; }
+  .combo-opt .sku-name { font-weight: 600; color: var(--ink); font-size: 13px; }
+
+  /* ── Modal ────────────────────────────────── */
+  .modal-overlay {
+    display: none;
+    position: fixed; inset: 0;
+    background: rgba(15,23,42,0.5);
+    z-index: 100;
+    align-items: center; justify-content: center;
+    padding: 24px;
+  }
+  .modal-overlay.active { display: flex; }
+  .modal {
+    background: var(--white);
+    border-radius: 16px;
+    padding: 28px 32px;
+    width: 100%;
+    max-width: 820px;
+    max-height: 92vh;
+    overflow-y: auto;
+    box-shadow: 0 20px 60px rgba(15,23,42,0.15);
+  }
+  .modal.wide { max-width: 980px; }
+  .modal-title { font-size: 20px; font-weight: 700; color: var(--ink); letter-spacing: -0.015em; margin-bottom: 4px; }
+  .modal-sub { font-size: 13px; color: var(--grey-1); margin-bottom: 22px; }
+  .modal-head { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 20px; }
+  .modal-close {
+    width: 32px; height: 32px;
+    border: 1px solid var(--line);
+    background: var(--white);
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 14px;
+    color: var(--grey-1);
+    display: flex; align-items: center; justify-content: center;
+  }
+  .modal-actions {
+    display: flex; justify-content: space-between; align-items: center; gap: 10px;
+    margin-top: 24px; padding-top: 18px; border-top: 1px solid var(--line);
+  }
+  .modal-actions-right { display: flex; gap: 10px; }
+
+  /* ── Mini SKU rows in modal ────────────────────────────────── */
+  .sku-row-table { width: 100%; border-collapse: collapse; font-size: 12.5px; margin-top: 8px; }
+  .sku-row-table thead th {
+    text-align: left;
+    padding: 8px 10px;
+    font-size: 10px;
+    font-weight: 700;
+    color: var(--grey-1);
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    background: var(--bg);
+    border-bottom: 1px solid var(--line);
+  }
+  .sku-row-table thead th.num { text-align: right; }
+  .sku-row-table thead th:first-child { border-top-left-radius: 8px; padding-left: 14px; }
+  .sku-row-table thead th:last-child { border-top-right-radius: 8px; padding-right: 14px; }
+  .sku-row-table tbody td {
+    padding: 10px;
+    border-bottom: 1px solid var(--line-2);
+    vertical-align: middle;
+  }
+  .sku-row-table tbody td:first-child { padding-left: 14px; }
+  .sku-row-table tbody td:last-child { padding-right: 14px; text-align: center; }
+  .sku-row-table .qty-input {
+    width: 80px;
+    padding: 6px 10px;
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    text-align: right;
+    font-family: inherit;
+    font-size: 12.5px;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+  }
+  .sku-row-table .qty-input:focus { outline: none; border-color: var(--primary-2); }
+  .sku-row-table .row-del {
+    width: 24px; height: 24px;
+    border: none;
+    background: transparent;
+    color: var(--grey-2);
+    cursor: pointer;
+    border-radius: 6px;
+    display: inline-flex; align-items: center; justify-content: center;
+  }
+  .sku-row-table .row-del:hover { color: var(--neg); background: var(--neg-tint); }
+
+  /* Stock bar */
+  .stock-bar { display: flex; align-items: center; gap: 8px; justify-content: flex-end; }
+  .stock-bar-track { width: 60px; height: 5px; background: var(--line); border-radius: 100px; overflow: hidden; }
+  .stock-bar-fill { height: 100%; border-radius: 100px; }
+  .stock-bar-fill.pos { background: var(--pos); }
+  .stock-bar-fill.warn { background: var(--warn); }
+  .stock-bar-fill.neg { background: var(--neg); }
+
+  /* Views */
+  .view { display: none; }
+  .view.active { display: block; }
+
+  /* Info banner */
+  .info-banner {
+    background: var(--primary-tint);
+    border: 1px solid #DBEAFE;
+    border-radius: 10px;
+    padding: 12px 16px;
+    margin-bottom: 16px;
+    font-size: 12.5px;
+    color: var(--ink-2);
+    line-height: 1.65;
+  }
+  .info-banner strong { color: var(--primary); }
+  .info-banner .head {
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--primary);
+    letter-spacing: 0.04em;
+    margin-bottom: 4px;
+    text-transform: uppercase;
+  }
+
+  /* KV grid for SKU modal */
+  .kv-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin: 18px 0; }
+  .kv-item { background: var(--bg); border-radius: 10px; padding: 14px 16px; }
+  .kv-item .k {
+    font-size: 10.5px; font-weight: 700; color: var(--grey-1);
+    letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 8px;
+  }
+  .kv-item .v {
+    font-size: 22px; font-weight: 800; color: var(--ink);
+    letter-spacing: -0.02em; line-height: 1;
+  }
+  .kv-item .v .unit { font-size: 12px; font-weight: 600; color: var(--grey-1); margin-left: 2px; }
+
+  /* Mut list */
+  .mut-list .entry {
+    display: grid;
+    grid-template-columns: 60px 1fr auto;
+    gap: 14px;
+    padding: 12px 0;
+    border-bottom: 1px solid var(--line-2);
+    align-items: center;
+  }
+  .mut-list .when { font-size: 11.5px; color: var(--grey-1); font-weight: 500; }
+  .mut-list .what { font-size: 13px; font-weight: 600; color: var(--ink); }
+  .mut-list .what .sub { display: block; font-size: 11.5px; color: var(--grey-1); font-weight: 500; margin-top: 2px; }
+  .mut-list .qty { text-align: right; font-variant-numeric: tabular-nums; }
+  .mut-list .qty .amount { font-size: 14px; font-weight: 800; }
+  .mut-list .qty .balance { font-size: 10.5px; color: var(--grey-1); margin-top: 1px; font-weight: 500; }
+  .mut-list .entry.pos .qty .amount { color: var(--pos); }
+  .mut-list .entry.neg .qty .amount { color: var(--neg); }
+
+  /* Upload area */
+  .upload-area {
+    border: 2px dashed var(--line);
+    border-radius: 12px;
+    padding: 24px;
+    text-align: center;
+    background: var(--bg);
+    transition: all 0.15s;
+    cursor: pointer;
+    margin-bottom: 16px;
+  }
+  .upload-area:hover { border-color: var(--primary-2); background: var(--primary-tint); }
+  .upload-area .icon { font-size: 24px; color: var(--grey-1); margin-bottom: 8px; }
+  .upload-area .title { font-size: 13.5px; font-weight: 600; color: var(--ink); margin-bottom: 4px; }
+  .upload-area .sub { font-size: 11.5px; color: var(--grey-1); }
+  .upload-area .sub a { color: var(--primary-2); font-weight: 600; }
+</style>
+</head>
+<body>
+
+<div class="app">
+  <aside class="sidebar">
+    <div class="brand-block">
+      <div class="brand-logo">PB</div>
+      <div class="brand-text">
+        <div class="name">Pretty Basic</div>
+        <div class="sub">PPIC System</div>
+      </div>
+    </div>
+
+    <div class="nav-section-label">PPIC</div>
+    <div class="nav-item active" data-label="Rekomendasi Produksi" onclick="showView('ppic', this)">
+      <span class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 3 7v10l9 5 9-5V7z"/><path d="M3 7l9 5 9-5M12 22V12"/></svg></span>
+      <span>Rekomendasi Produksi</span>
+      <span class="count">17</span>
+    </div>
+    <div class="nav-item" data-label="Stock Live" onclick="showView('stock', this)">
+      <span class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 3v18M3 9h18"/></svg></span>
+      <span>Stock Live</span>
+    </div>
+    <div class="nav-item" data-label="Barang Masuk" onclick="showView('masuk', this)">
+      <span class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M19 12l-7 7-7-7"/></svg></span>
+      <span>Barang Masuk</span>
+    </div>
+    <div class="nav-item" data-label="Barang Keluar" onclick="showView('keluar', this)">
+      <span class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5M5 12l7-7 7 7"/></svg></span>
+      <span>Barang Keluar</span>
+    </div>
+
+    <div class="nav-section-label">Analisis</div>
+    <div class="nav-item" data-label="Ringkasan Produk" onclick="showView('ringkasan', this)">
+      <span class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M7 15l4-4 4 4 5-6"/></svg></span>
+      <span>Ringkasan Produk</span>
+    </div>
+    <div class="nav-item" data-label="Riwayat Mutasi" onclick="showView('mutasi', this)">
+      <span class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7h13l-3-3M21 17H8l3 3"/></svg></span>
+      <span>Riwayat Mutasi</span>
+    </div>
+
+    <div class="nav-section-label">Pengaturan</div>
+    <div class="nav-item" data-label="Parameter PPIC" onclick="showView('param', this)">
+      <span class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></span>
+      <span>Parameter PPIC</span>
+    </div>
+
+    <div class="sidebar-footer">
+      <div class="avatar">J</div>
+      <div class="user-info">
+        <div class="user-name">Jose Putra</div>
+        <div class="user-role">Owner</div>
+      </div>
+    </div>
+  </aside>
+
+  <button class="sidebar-toggle" onclick="toggleSidebar()">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
+  </button>
+
+  <main class="main">
+
+    <!-- ═══════════════ PPIC ═══════════════ -->
+    <div class="view active" id="view-ppic">
+      <div class="page-header">
+        <div>
+          <div class="page-title">PPIC — Rekomendasi Produksi</div>
+          <div class="page-sub">Forecast berdasarkan bobot 3 bulan terakhir · Lead time 14 hari</div>
+        </div>
+        <div class="date-pill">Sabtu, 17 Oktober 2026</div>
+      </div>
+
+      <div class="stat-grid cols-6">
+        <div class="stat-card">
+          <div class="stat-label neg"><span class="dot"></span>Habis</div>
+          <div class="stat-value neg">11</div>
+          <div class="stat-sub">Stock = 0, masih laku</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label warn"><span class="dot"></span>Produksi</div>
+          <div class="stat-value warn">33</div>
+          <div class="stat-sub">Di bawah Min Stock</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label pos"><span class="dot"></span>Aman</div>
+          <div class="stat-value pos">30</div>
+          <div class="stat-sub">Di atas Min Stock</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label yellow"><span class="dot"></span>Overstock</div>
+          <div class="stat-value" style="color:var(--yellow);">72</div>
+          <div class="stat-sub">Di atas Max × 1,5</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label purple"><span class="dot"></span>Slow/Dead</div>
+          <div class="stat-value" style="color:var(--purple);">15</div>
+          <div class="stat-sub">Forecast rendah</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label primary"><span class="dot"></span>Saran Produksi</div>
+          <div class="stat-value">1.047 <span class="unit">pcs</span></div>
+          <div class="stat-sub">Dari 44 SKU prioritas</div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-head">
+          <div>
+            <div class="panel-title">Daftar SKU — Status PPIC</div>
+            <div class="panel-sub"><strong style="color:var(--primary);">Ranking A</strong> = top 70% penjualan · <strong>B</strong> = 20% berikutnya · <strong style="color:var(--grey-1);">C</strong> = 10% sisanya</div>
+          </div>
+          <div style="display:flex;gap:10px;">
+            <button class="btn" onclick="alert('Export Excel: daftar SKU PPIC akan ter-download sebagai .xlsx')">Export Excel</button>
+            <button class="btn-primary btn-blue" onclick="openBatchModal()">Buat Batch Produksi (<span id="batch-count">3</span>)</button>
+          </div>
+        </div>
+
+        <div class="toolbar">
+          <input class="search-input" placeholder="Cari SKU, produk, warna...">
+          <button class="filter-chip active">Semua <span class="count">270</span></button>
+          <button class="filter-chip">Habis <span class="count">11</span></button>
+          <button class="filter-chip">Produksi <span class="count">33</span></button>
+          <button class="filter-chip">Aman <span class="count">30</span></button>
+          <button class="filter-chip">Overstock <span class="count">72</span></button>
+          <div style="margin-left:auto;display:flex;gap:8px;">
+            <select class="select-input">
+              <option>Semua Ranking</option>
+              <option>Ranking A</option>
+              <option>Ranking B</option>
+              <option>Ranking C</option>
+            </select>
+          </div>
+        </div>
+
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th style="width:28px;"><input type="checkbox"></th>
+              <th>Produk / SKU</th>
+              <th style="width:70px;" title="Ranking otomatis dari sales 3 bulan. Bisa override.">Ranking</th>
+              <th class="num">Forecast/bln</th>
+              <th class="num">Min</th>
+              <th class="num">Max</th>
+              <th class="num">Stok</th>
+              <th class="num">Produksi</th>
+              <th class="num">Hari Cover</th>
+              <th>Status</th>
+              <th class="num">Saran</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr onclick="openSKU('MONACOTOP-WHITE-ML', 'Monaco Linen Top · Broken white · S/M')">
+              <td><input type="checkbox" checked onclick="event.stopPropagation()"></td>
+              <td><div class="cell-primary">Monaco Linen Top · Broken white · S/M</div><div class="cell-sku">MONACOTOP-WHITE-ML</div></td>
+              <td><span class="rank a">A</span></td>
+              <td class="num">21</td><td class="num">15</td><td class="num">25</td>
+              <td class="num"><strong style="color:var(--neg);">0</strong></td>
+              <td class="num">0</td><td class="num" style="color:var(--neg);">0</td>
+              <td><span class="badge neg">HABIS</span></td>
+              <td class="num"><strong>25</strong></td>
+            </tr>
+            <tr onclick="openSKU('ELOISESKIRT-WHITE-AS', 'Eloise Midi Skirt · White · All size')">
+              <td><input type="checkbox" checked onclick="event.stopPropagation()"></td>
+              <td><div class="cell-primary">Eloise Midi Skirt · White · All size</div><div class="cell-sku">ELOISESKIRT-WHITE-AS</div></td>
+              <td><span class="rank a">A</span></td>
+              <td class="num">46</td><td class="num">33</td><td class="num">54</td>
+              <td class="num"><strong style="color:var(--neg);">0</strong></td>
+              <td class="num">0</td><td class="num" style="color:var(--neg);">0</td>
+              <td><span class="badge neg">HABIS</span></td>
+              <td class="num"><strong>54</strong></td>
+            </tr>
+            <tr onclick="openSKU('CLAUDIESKIRT-WHITE-ML', 'Claudie Midi Skirt · Broken white · S/M')">
+              <td><input type="checkbox" checked onclick="event.stopPropagation()"></td>
+              <td><div class="cell-primary">Claudie Midi Skirt · Broken white · S/M</div><div class="cell-sku">CLAUDIESKIRT-WHITE-ML</div></td>
+              <td><span class="rank a">A</span></td>
+              <td class="num">21</td><td class="num">15</td><td class="num">25</td>
+              <td class="num"><strong style="color:var(--neg);">0</strong></td>
+              <td class="num">0</td><td class="num" style="color:var(--neg);">0</td>
+              <td><span class="badge neg">HABIS</span></td>
+              <td class="num"><strong>25</strong></td>
+            </tr>
+            <tr onclick="openSKU('POLLYTOP-BLUE-SM', 'Polly Tanktop · Blue · S/M')">
+              <td><input type="checkbox" onclick="event.stopPropagation()"></td>
+              <td><div class="cell-primary">Polly Tanktop · Blue · S/M</div><div class="cell-sku">POLLYTOP-BLUE-SM</div></td>
+              <td><span class="rank a">A</span></td>
+              <td class="num">38</td><td class="num">27</td><td class="num">44</td>
+              <td class="num"><strong style="color:var(--warn);">14</strong></td>
+              <td class="num">0</td><td class="num" style="color:var(--warn);">11</td>
+              <td><span class="badge warn">PRODUKSI</span></td>
+              <td class="num"><strong>30</strong></td>
+            </tr>
+            <tr onclick="openSKU('SOLEASKORT-BLACK-XSS', 'Solea Mini Skort · Black · XS/S')">
+              <td><input type="checkbox" onclick="event.stopPropagation()"></td>
+              <td><div class="cell-primary">Solea Mini Skort · Black · XS/S</div><div class="cell-sku">SOLEASKORT-BLACK-XSS</div></td>
+              <td><span class="rank a">A</span></td>
+              <td class="num">67</td><td class="num">48</td><td class="num">79</td>
+              <td class="num"><strong style="color:var(--warn);">4</strong></td>
+              <td class="num">0</td><td class="num" style="color:var(--warn);">2</td>
+              <td><span class="badge warn">PRODUKSI</span></td>
+              <td class="num"><strong>75</strong></td>
+            </tr>
+            <tr onclick="openSKU('COASTALTOP-GRAY-XSS', 'Coastal LST · Gray · XS/S')">
+              <td><input type="checkbox" onclick="event.stopPropagation()"></td>
+              <td><div class="cell-primary">Coastal Longsleeve Top · Gray · XS/S</div><div class="cell-sku">COASTALTOP-GRAY-XSS</div></td>
+              <td><span class="rank a">A</span></td>
+              <td class="num">13</td><td class="num">11</td><td class="num">17</td>
+              <td class="num"><strong>17</strong></td>
+              <td class="num">0</td><td class="num">39</td>
+              <td><span class="badge pos">AMAN</span></td>
+              <td class="num">0</td>
+            </tr>
+            <tr onclick="openSKU('COASTALTOP-BLACK-XSS', 'Coastal LST · Black · XS/S')">
+              <td><input type="checkbox" onclick="event.stopPropagation()"></td>
+              <td><div class="cell-primary">Coastal Longsleeve Top · Black · XS/S</div><div class="cell-sku">COASTALTOP-BLACK-XSS</div></td>
+              <td><span class="rank a">A</span></td>
+              <td class="num">21</td><td class="num">15</td><td class="num">25</td>
+              <td class="num"><strong>62</strong></td>
+              <td class="num">0</td><td class="num">87</td>
+              <td><span class="badge yellow">OVERSTOCK</span></td>
+              <td class="num">0</td>
+            </tr>
+            <tr onclick="openSKU('POLLYTOP-MINT-XSS', 'Polly Tanktop · Mint · XS/S')">
+              <td><input type="checkbox" onclick="event.stopPropagation()"></td>
+              <td><div class="cell-primary">Polly Tanktop · Mint · XS/S</div><div class="cell-sku">POLLYTOP-MINT-XSS</div></td>
+              <td><span class="rank c">C</span></td>
+              <td class="num">3</td><td class="num">3</td><td class="num">4</td>
+              <td class="num"><strong>0</strong></td>
+              <td class="num">0</td><td class="num">0</td>
+              <td><span class="badge grey">STOP</span></td>
+              <td class="num">0</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ═══════════════ STOCK LIVE ═══════════════ -->
+    <div class="view" id="view-stock">
+      <div class="page-header">
+        <div>
+          <div class="page-title">Stock Live — Semua SKU</div>
+          <div class="page-sub">Real-time dari Barang Masuk & Barang Keluar</div>
+        </div>
+        <div class="date-pill">Sabtu, 17 Oktober 2026</div>
+      </div>
+
+      <div class="stat-grid cols-5">
+        <div class="stat-card"><div class="stat-label primary"><span class="dot"></span>Total SKU</div><div class="stat-value">270</div><div class="stat-sub">Dari 36 produk</div></div>
+        <div class="stat-card"><div class="stat-label"><span class="dot"></span>Total Stock</div><div class="stat-value">3.173 <span class="unit">pcs</span></div><div class="stat-sub">Nilai Rp 428jt</div></div>
+        <div class="stat-card"><div class="stat-label pos"><span class="dot"></span>Masuk 7 Hari</div><div class="stat-value pos">+248 <span class="unit">pcs</span></div><div class="stat-sub">5 batch selesai</div></div>
+        <div class="stat-card"><div class="stat-label neg"><span class="dot"></span>Keluar 7 Hari</div><div class="stat-value neg">−312 <span class="unit">pcs</span></div><div class="stat-sub">Sales + retur + damage</div></div>
+        <div class="stat-card"><div class="stat-label warn"><span class="dot"></span>Net Movement</div><div class="stat-value warn">−64 <span class="unit">pcs</span></div><div class="stat-sub">Stock turun minggu ini</div></div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-head">
+          <div>
+            <div class="panel-title">Stock per SKU</div>
+            <div class="panel-sub">Klik baris untuk kartu mutasi lengkap</div>
+          </div>
+          <div style="display:flex;gap:10px;">
+            <button class="btn-pos" onclick="openModal('modal-masuk')">+ Barang Masuk</button>
+            <button class="btn-neg" onclick="openModal('modal-keluar')">− Barang Keluar</button>
+          </div>
+        </div>
+
+        <div class="toolbar">
+          <input class="search-input" placeholder="Cari SKU, produk...">
+          <button class="filter-chip active">Semua</button>
+          <button class="filter-chip">Stok = 0</button>
+          <button class="filter-chip">Stok 1-10</button>
+          <button class="filter-chip">Stok 10+</button>
+          <div style="margin-left:auto;">
+            <select class="select-input"><option>Urut: Stock Terendah</option><option>Urut: Stock Tertinggi</option><option>Urut: Nama</option></select>
+          </div>
+        </div>
+
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Produk / SKU</th>
+              <th style="width:70px;">Ranking</th>
+              <th class="num">Stock</th>
+              <th class="num">Min</th>
+              <th class="num">Max</th>
+              <th class="num">% Kapasitas</th>
+              <th class="num">Masuk 7d</th>
+              <th class="num">Keluar 7d</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr onclick="openSKU('SOLEASKORT-BLACK-ML', 'Solea Mini Skort · Black · S/M')">
+              <td><div class="cell-primary">Solea Mini Skort · Black · S/M</div><div class="cell-sku">SOLEASKORT-BLACK-ML</div></td>
+              <td><span class="rank a">A</span></td>
+              <td class="num"><strong>28</strong></td><td class="num">44</td><td class="num">73</td>
+              <td class="num"><div class="stock-bar"><div class="stock-bar-track"><div class="stock-bar-fill warn" style="width:38%;"></div></div><span>38%</span></div></td>
+              <td class="num" style="color:var(--pos);">+12</td>
+              <td class="num" style="color:var(--neg);">−9</td>
+              <td><span class="badge warn">PRODUKSI</span></td>
+            </tr>
+            <tr onclick="openSKU('COASTALTOP-WHITE-XSS', 'Coastal LST · BW · XS/S')">
+              <td><div class="cell-primary">Coastal LST · Broken white · XS/S</div><div class="cell-sku">COASTALTOP-WHITE-XSS</div></td>
+              <td><span class="rank a">A</span></td>
+              <td class="num"><strong>38</strong></td><td class="num">9</td><td class="num">15</td>
+              <td class="num"><div class="stock-bar"><div class="stock-bar-track"><div class="stock-bar-fill" style="width:100%;background:var(--yellow);"></div></div><span>253%</span></div></td>
+              <td class="num">0</td>
+              <td class="num" style="color:var(--neg);">−3</td>
+              <td><span class="badge yellow">OVERSTOCK</span></td>
+            </tr>
+            <tr onclick="openSKU('MONACOTOP-WHITE-ML', 'Monaco Linen Top · BW · S/M')">
+              <td><div class="cell-primary">Monaco Linen Top · Broken white · S/M</div><div class="cell-sku">MONACOTOP-WHITE-ML</div></td>
+              <td><span class="rank a">A</span></td>
+              <td class="num"><strong style="color:var(--neg);">0</strong></td><td class="num">15</td><td class="num">25</td>
+              <td class="num"><div class="stock-bar"><div class="stock-bar-track"></div><span style="color:var(--neg);">0%</span></div></td>
+              <td class="num">0</td>
+              <td class="num" style="color:var(--neg);">−6</td>
+              <td><span class="badge neg">HABIS</span></td>
+            </tr>
+            <tr onclick="openSKU('COASTALTOP-BROWN-XSS', 'Coastal LST · Brown · XS/S')">
+              <td><div class="cell-primary">Coastal LST · Brown · XS/S</div><div class="cell-sku">COASTALTOP-BROWN-XSS</div></td>
+              <td><span class="rank a">A</span></td>
+              <td class="num"><strong style="color:var(--warn);">3</strong></td><td class="num">17</td><td class="num">27</td>
+              <td class="num"><div class="stock-bar"><div class="stock-bar-track"><div class="stock-bar-fill neg" style="width:11%;"></div></div><span style="color:var(--warn);">11%</span></div></td>
+              <td class="num">0</td>
+              <td class="num" style="color:var(--neg);">−7</td>
+              <td><span class="badge warn">PRODUKSI</span></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ═══════════════ BARANG MASUK ═══════════════ -->
+    <div class="view" id="view-masuk">
+      <div class="page-header">
+        <div>
+          <div class="page-title">Barang Masuk</div>
+          <div class="page-sub">Catatan stock masuk dari produksi, retur, atau adjustment · Rekap per hari</div>
+        </div>
+        <div class="date-pill">Sabtu, 17 Oktober 2026</div>
+      </div>
+
+      <div class="stat-grid cols-4">
+        <div class="stat-card"><div class="stat-label pos"><span class="dot"></span>Masuk Hari Ini</div><div class="stat-value pos">+86 <span class="unit">pcs</span></div><div class="stat-sub">2 input batch produksi</div></div>
+        <div class="stat-card"><div class="stat-label pos"><span class="dot"></span>Masuk 7 Hari</div><div class="stat-value">+248 <span class="unit">pcs</span></div><div class="stat-sub">5 input</div></div>
+        <div class="stat-card"><div class="stat-label primary"><span class="dot"></span>Masuk Bulan Ini</div><div class="stat-value">+1.124 <span class="unit">pcs</span></div><div class="stat-sub">Oktober 2026</div></div>
+        <div class="stat-card"><div class="stat-label"><span class="dot"></span>Batch Pending</div><div class="stat-value">3</div><div class="stat-sub">Dari konveksi, blm input</div></div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-head">
+          <div>
+            <div class="panel-title">Riwayat Barang Masuk</div>
+            <div class="panel-sub">1 input bisa isi banyak SKU sekaligus · Setiap input auto-update Stock Live</div>
+          </div>
+          <div style="display:flex;gap:10px;">
+            <button class="btn" onclick="openModal('modal-upload-masuk')">
+              <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+              Upload Excel
+            </button>
+            <button class="btn-pos" onclick="openModal('modal-masuk')">+ Catat Barang Masuk</button>
+          </div>
+        </div>
+
+        <div class="toolbar">
+          <input class="search-input" placeholder="Cari batch, SKU...">
+          <button class="filter-chip active">Semua Tipe</button>
+          <button class="filter-chip">Produksi Selesai</button>
+          <button class="filter-chip">Retur</button>
+          <button class="filter-chip">Adjustment +</button>
+          <div style="margin-left:auto;display:flex;gap:8px;">
+            <input type="date" class="date-input" value="2026-10-01">
+            <input type="date" class="date-input" value="2026-10-17">
+          </div>
+        </div>
+
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Tanggal</th>
+              <th>Tipe</th>
+              <th>Ref</th>
+              <th>SKU dalam Input</th>
+              <th class="num">Total Qty</th>
+              <th>Catatan</th>
+              <th>Admin</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>17 Okt 2026<div class="cell-sub">14:20</div></td>
+              <td><span class="badge pos">Produksi</span></td>
+              <td><strong style="color:var(--primary-2);">BATCH-2026-034</strong></td>
+              <td>
+                <div class="cell-primary">7 SKU</div>
+                <div class="cell-sub">Solea Mini Skort, Polly Tanktop, Coastal LST, +4 lainnya</div>
+              </td>
+              <td class="num"><strong style="color:var(--pos);">+248</strong></td>
+              <td>Konveksi GKS selesai</td>
+              <td>Jose</td>
+            </tr>
+            <tr>
+              <td>15 Okt 2026<div class="cell-sub">16:30</div></td>
+              <td><span class="badge yellow">Retur</span></td>
+              <td>—</td>
+              <td>
+                <div class="cell-primary">2 SKU</div>
+                <div class="cell-sub">Coastal LST, Monaco Linen Top</div>
+              </td>
+              <td class="num"><strong style="color:var(--pos);">+3</strong></td>
+              <td>Customer size tidak cocok</td>
+              <td>Justine</td>
+            </tr>
+            <tr>
+              <td>14 Okt 2026<div class="cell-sub">09:15</div></td>
+              <td><span class="badge pos">Produksi</span></td>
+              <td><strong style="color:var(--primary-2);">BATCH-2026-033</strong></td>
+              <td>
+                <div class="cell-primary">5 SKU</div>
+                <div class="cell-sub">Claudie Skirt, Solea Skort, Eloise Skirt, +2 lainnya</div>
+              </td>
+              <td class="num"><strong style="color:var(--pos);">+185</strong></td>
+              <td>Konveksi Nusa</td>
+              <td>Jose</td>
+            </tr>
+            <tr>
+              <td>12 Okt 2026<div class="cell-sub">10:00</div></td>
+              <td><span class="badge grey">Adjustment</span></td>
+              <td>OPNAME-OKT</td>
+              <td>
+                <div class="cell-primary">4 SKU</div>
+                <div class="cell-sub">Multiways Top, Lyn Top, +2 lainnya</div>
+              </td>
+              <td class="num"><strong style="color:var(--pos);">+8</strong></td>
+              <td>Stock opname bulanan</td>
+              <td>Justine</td>
+            </tr>
+            <tr>
+              <td>11 Okt 2026<div class="cell-sub">13:00</div></td>
+              <td><span class="badge pos">Produksi</span></td>
+              <td><strong style="color:var(--primary-2);">BATCH-2026-032</strong></td>
+              <td>
+                <div class="cell-primary">6 SKU</div>
+                <div class="cell-sub">Lyn Top, Monaco Top, Polly Tanktop, +3 lainnya</div>
+              </td>
+              <td class="num"><strong style="color:var(--pos);">+156</strong></td>
+              <td>Konveksi GKS</td>
+              <td>Jose</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ═══════════════ BARANG KELUAR ═══════════════ -->
+    <div class="view" id="view-keluar">
+      <div class="page-header">
+        <div>
+          <div class="page-title">Barang Keluar</div>
+          <div class="page-sub">Catatan stock keluar dari sales, damage, atau adjustment · Rekap per hari</div>
+        </div>
+        <div class="date-pill">Sabtu, 17 Oktober 2026</div>
+      </div>
+
+      <div class="stat-grid cols-4">
+        <div class="stat-card"><div class="stat-label neg"><span class="dot"></span>Keluar Hari Ini</div><div class="stat-value neg">−48 <span class="unit">pcs</span></div><div class="stat-sub">42 sales · 6 damage</div></div>
+        <div class="stat-card"><div class="stat-label neg"><span class="dot"></span>Keluar 7 Hari</div><div class="stat-value">−312 <span class="unit">pcs</span></div><div class="stat-sub">Sales + damage</div></div>
+        <div class="stat-card"><div class="stat-label primary"><span class="dot"></span>Keluar Bulan Ini</div><div class="stat-value">−1.188 <span class="unit">pcs</span></div><div class="stat-sub">Oktober 2026</div></div>
+        <div class="stat-card"><div class="stat-label warn"><span class="dot"></span>Damage</div><div class="stat-value warn">22 <span class="unit">pcs</span></div><div class="stat-sub">Bulan ini (0,8% dari sales)</div></div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-head">
+          <div>
+            <div class="panel-title">Riwayat Barang Keluar</div>
+            <div class="panel-sub">1 input bisa isi banyak SKU sekaligus · Setiap input auto-update Stock Live</div>
+          </div>
+          <div style="display:flex;gap:10px;">
+            <button class="btn" onclick="openModal('modal-upload-keluar')">
+              <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+              Upload Excel
+            </button>
+            <button class="btn-neg" onclick="openModal('modal-keluar')">− Catat Barang Keluar</button>
+          </div>
+        </div>
+
+        <div class="toolbar">
+          <input class="search-input" placeholder="Cari input, SKU...">
+          <button class="filter-chip active">Semua Tipe</button>
+          <button class="filter-chip">Sales</button>
+          <button class="filter-chip">Damage</button>
+          <button class="filter-chip">Giveaway</button>
+          <button class="filter-chip">Adjustment −</button>
+          <div style="margin-left:auto;display:flex;gap:8px;">
+            <input type="date" class="date-input" value="2026-10-01">
+            <input type="date" class="date-input" value="2026-10-17">
+          </div>
+        </div>
+
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Tanggal</th>
+              <th>Tipe</th>
+              <th>Channel</th>
+              <th>SKU dalam Input</th>
+              <th class="num">Total Qty</th>
+              <th>Catatan</th>
+              <th>Admin</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>17 Okt 2026<div class="cell-sub">End of day</div></td>
+              <td><span class="badge info">Sales</span></td>
+              <td>Shopee</td>
+              <td>
+                <div class="cell-primary">24 SKU</div>
+                <div class="cell-sub">Rekap sales Shopee hari ini</div>
+              </td>
+              <td class="num"><strong style="color:var(--neg);">−42</strong></td>
+              <td>Auto import dari Shopee</td>
+              <td>Justine</td>
+            </tr>
+            <tr>
+              <td>17 Okt 2026<div class="cell-sub">11:45</div></td>
+              <td><span class="badge warn">Damage</span></td>
+              <td>QC Gudang</td>
+              <td>
+                <div class="cell-primary">3 SKU</div>
+                <div class="cell-sub">Coastal LST, Monaco Top, Polly Tanktop</div>
+              </td>
+              <td class="num"><strong style="color:var(--neg);">−6</strong></td>
+              <td>Jahitan bolong & noda</td>
+              <td>Justine</td>
+            </tr>
+            <tr>
+              <td>16 Okt 2026<div class="cell-sub">End of day</div></td>
+              <td><span class="badge info">Sales</span></td>
+              <td>TikTok Shop</td>
+              <td>
+                <div class="cell-primary">18 SKU</div>
+                <div class="cell-sub">Rekap TTS 16 Okt</div>
+              </td>
+              <td class="num"><strong style="color:var(--neg);">−35</strong></td>
+              <td>Live selling 20.00-22.00</td>
+              <td>Justine</td>
+            </tr>
+            <tr>
+              <td>16 Okt 2026<div class="cell-sub">10:30</div></td>
+              <td><span class="badge purple">Giveaway</span></td>
+              <td>Instagram</td>
+              <td>
+                <div class="cell-primary">3 SKU</div>
+                <div class="cell-sub">Lyn Top, Multiways, Capri</div>
+              </td>
+              <td class="num"><strong style="color:var(--neg);">−3</strong></td>
+              <td>Giveaway IG @prettybasic</td>
+              <td>Jose</td>
+            </tr>
+            <tr>
+              <td>14 Okt 2026<div class="cell-sub">16:00</div></td>
+              <td><span class="badge grey">Adjustment</span></td>
+              <td>Opname</td>
+              <td>
+                <div class="cell-primary">5 SKU</div>
+                <div class="cell-sub">Koreksi hasil opname bulanan</div>
+              </td>
+              <td class="num"><strong style="color:var(--neg);">−12</strong></td>
+              <td>Stock opname bulanan</td>
+              <td>Jose</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ═══════════════ RINGKASAN PRODUK ═══════════════ -->
+    <div class="view" id="view-ringkasan">
+      <div class="page-header">
+        <div>
+          <div class="page-title">Ringkasan per Produk</div>
+          <div class="page-sub">Agregat semua warna & size per produk · Urut terlaris</div>
+        </div>
+        <div class="date-pill">Sabtu, 17 Oktober 2026</div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-head">
+          <div>
+            <div class="panel-title">36 Produk Aktif</div>
+            <div class="panel-sub">Total 2.196 forecast/bulan · 3.173 pcs stock · 1.047 saran produksi</div>
+          </div>
+          <button class="btn">Export Excel</button>
+        </div>
+
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Produk</th>
+              <th class="num">Jml Varian</th>
+              <th class="num">H-3 bln</th>
+              <th class="num">H-2 bln</th>
+              <th class="num">H-1 bln</th>
+              <th class="num">Bln berjalan</th>
+              <th class="num">Forecast/bln</th>
+              <th class="num">Stock</th>
+              <th class="num">Habis</th>
+              <th class="num">Produksi</th>
+              <th class="num">Saran Total</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr><td class="cell-primary">Solea Mini Skort</td><td class="num">8</td><td class="num">175</td><td class="num">216</td><td class="num">308</td><td class="num">132</td><td class="num"><strong>256</strong></td><td class="num">114</td><td class="num">0</td><td class="num" style="color:var(--warn);">4</td><td class="num"><strong>192</strong></td></tr>
+            <tr><td class="cell-primary">Coastal Longsleeve Top</td><td class="num">14</td><td class="num">205</td><td class="num">221</td><td class="num">161</td><td class="num">76</td><td class="num"><strong>194</strong></td><td class="num">264</td><td class="num">0</td><td class="num" style="color:var(--warn);">5</td><td class="num"><strong>68</strong></td></tr>
+            <tr><td class="cell-primary">Polly Tanktop</td><td class="num">12</td><td class="num">186</td><td class="num">169</td><td class="num">142</td><td class="num">68</td><td class="num"><strong>157</strong></td><td class="num">398</td><td class="num">0</td><td class="num" style="color:var(--warn);">2</td><td class="num"><strong>51</strong></td></tr>
+            <tr><td class="cell-primary">Eloise Midi Skirt</td><td class="num">4</td><td class="num">161</td><td class="num">179</td><td class="num">139</td><td class="num">43</td><td class="num"><strong>153</strong></td><td class="num">42</td><td class="num" style="color:var(--neg);">1</td><td class="num" style="color:var(--warn);">2</td><td class="num"><strong>135</strong></td></tr>
+            <tr><td class="cell-primary">Monaco Linen Top</td><td class="num">6</td><td class="num">74</td><td class="num">131</td><td class="num">129</td><td class="num">31</td><td class="num"><strong>120</strong></td><td class="num">22</td><td class="num" style="color:var(--neg);">3</td><td class="num" style="color:var(--warn);">3</td><td class="num"><strong>122</strong></td></tr>
+            <tr><td class="cell-primary">Lyn Off Shoulder Tee</td><td class="num">5</td><td class="num">56</td><td class="num">108</td><td class="num">125</td><td class="num">36</td><td class="num"><strong>114</strong></td><td class="num">67</td><td class="num">0</td><td class="num" style="color:var(--warn);">3</td><td class="num"><strong>64</strong></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ═══════════════ RIWAYAT MUTASI ═══════════════ -->
+    <div class="view" id="view-mutasi">
+      <div class="page-header">
+        <div>
+          <div class="page-title">Riwayat Mutasi Stock</div>
+          <div class="page-sub">Semua pergerakan stock dalam satu timeline</div>
+        </div>
+        <div class="date-pill">Sabtu, 17 Oktober 2026</div>
+      </div>
+
+      <div class="stat-grid cols-4">
+        <div class="stat-card"><div class="stat-label pos"><span class="dot"></span>Total Masuk Bulan Ini</div><div class="stat-value pos">+1.124</div><div class="stat-sub">14 transaksi</div></div>
+        <div class="stat-card"><div class="stat-label neg"><span class="dot"></span>Total Keluar Bulan Ini</div><div class="stat-value neg">−1.188</div><div class="stat-sub">187 transaksi</div></div>
+        <div class="stat-card"><div class="stat-label warn"><span class="dot"></span>Perubahan Net</div><div class="stat-value warn">−64</div><div class="stat-sub">Stock turun di Oktober</div></div>
+        <div class="stat-card"><div class="stat-label"><span class="dot"></span>Adjustment</div><div class="stat-value">8</div><div class="stat-sub">Opname + koreksi</div></div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-head">
+          <div>
+            <div class="panel-title">Timeline Mutasi</div>
+            <div class="panel-sub">Auto dari Barang Masuk & Barang Keluar</div>
+          </div>
+        </div>
+        <div class="toolbar">
+          <input class="search-input" placeholder="Cari SKU, batch...">
+          <button class="filter-chip active">Semua</button>
+          <button class="filter-chip">Masuk</button>
+          <button class="filter-chip">Keluar</button>
+        </div>
+        <div class="mut-list">
+          <div class="entry pos">
+            <div class="when">17 Okt<br>14:20</div>
+            <div class="what">BATCH-2026-034 · 7 SKU<span class="sub">Produksi Konveksi GKS selesai</span></div>
+            <div class="qty"><div class="amount">+248 pcs</div></div>
+          </div>
+          <div class="entry neg">
+            <div class="when">17 Okt<br>EOD</div>
+            <div class="what">Rekap Sales Shopee · 24 SKU<span class="sub">Auto import dari Shopee</span></div>
+            <div class="qty"><div class="amount">−42 pcs</div></div>
+          </div>
+          <div class="entry neg">
+            <div class="when">17 Okt<br>11:45</div>
+            <div class="what">QC Damage · 3 SKU<span class="sub">Jahitan bolong & noda</span></div>
+            <div class="qty"><div class="amount">−6 pcs</div></div>
+          </div>
+          <div class="entry neg">
+            <div class="when">16 Okt<br>EOD</div>
+            <div class="what">Rekap Sales TTS · 18 SKU<span class="sub">Live selling 20.00-22.00</span></div>
+            <div class="qty"><div class="amount">−35 pcs</div></div>
+          </div>
+          <div class="entry pos">
+            <div class="when">15 Okt<br>16:30</div>
+            <div class="what">Retur Customer · 2 SKU<span class="sub">Size tidak cocok</span></div>
+            <div class="qty"><div class="amount">+3 pcs</div></div>
+          </div>
+          <div class="entry pos">
+            <div class="when">14 Okt<br>09:15</div>
+            <div class="what">BATCH-2026-033 · 5 SKU<span class="sub">Konveksi Nusa selesai</span></div>
+            <div class="qty"><div class="amount">+185 pcs</div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══════════════ PARAMETER ═══════════════ -->
+    <div class="view" id="view-param">
+      <div class="page-header">
+        <div>
+          <div class="page-title">Parameter PPIC</div>
+          <div class="page-sub">Setting yang menentukan perhitungan Min, Max, dan Forecast</div>
+        </div>
+        <div class="date-pill">Sabtu, 17 Oktober 2026</div>
+      </div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+        <div class="panel">
+          <div class="panel-head">
+            <div>
+              <div class="panel-title">Rumus Min & Max Stock</div>
+              <div class="panel-sub">Ubah angka → semua Min/Max otomatis update · Hasil selalu dibulatkan ke atas</div>
+            </div>
+          </div>
+
+          <div class="info-banner">
+            <div class="head">Rumus Aktif</div>
+            <div><strong>Min Stock</strong> = ⌈ Forecast/hari × <span style="color:var(--primary-2);">21 hari</span> ⌉</div>
+            <div><strong>Max Stock</strong> = ⌈ Forecast/hari × <span style="color:var(--primary-2);">35 hari</span> ⌉</div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-field">
+              <label>Min Stock = cover berapa hari?</label>
+              <input type="number" value="21">
+              <div class="hint">Biasanya = Lead Time + Safety (14 + 7)</div>
+            </div>
+            <div class="form-field">
+              <label>Max Stock = cover berapa hari?</label>
+              <input type="number" value="35">
+              <div class="hint">Biasanya = Lead Time + Siklus + Safety</div>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-field">
+              <label>Lead Time Produksi (hari)</label>
+              <input type="number" value="14">
+            </div>
+            <div class="form-field">
+              <label>MOQ per Varian (pcs)</label>
+              <input type="number" value="1">
+            </div>
+          </div>
+
+          <div class="form-field">
+            <label>Pembulatan Hasil</label>
+            <select>
+              <option selected>Bulatkan ke atas (CEILING) — default</option>
+              <option>Bulatkan ke bawah (FLOOR)</option>
+              <option>Bulatkan normal (ROUND)</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-head">
+            <div>
+              <div class="panel-title">Bobot Forecast</div>
+              <div class="panel-sub">Total harus 100% · Bulan terakhir = bobot paling besar (paling akurat)</div>
+            </div>
+          </div>
+
+          <div class="form-row-3">
+            <div class="form-field">
+              <label>Bobot H-3 Bulan (%)</label>
+              <input type="number" value="20">
+              <div class="hint">Juli (bulan paling lama)</div>
+            </div>
+            <div class="form-field">
+              <label>Bobot H-2 Bulan (%)</label>
+              <input type="number" value="30">
+              <div class="hint">Agustus</div>
+            </div>
+            <div class="form-field">
+              <label>Bobot H-1 Bulan (%)</label>
+              <input type="number" value="50">
+              <div class="hint">September (bulan terakhir)</div>
+            </div>
+          </div>
+
+          <div class="info-banner" style="background:var(--pos-tint);border-color:#BBF7D0;">
+            <div class="head" style="color:#166534;">Logic Produk Baru</div>
+            <div style="color:var(--ink-2);">
+              <strong>Umur ≥ 3 bulan:</strong> Pakai bobot normal 20% + 30% + 50%<br>
+              <strong>Umur 2 bulan:</strong> Pakai H-1 (60%) + H-2 (40%) saja<br>
+              <strong>Umur 1 bulan:</strong> Pakai H-1 saja (100%)<br>
+              <strong>Umur 1–4 minggu di bulan berjalan:</strong> Prorata (sales mingguan × 4)<br>
+              <strong>Umur &lt; 1 minggu:</strong> Belum ada forecast, tunggu 1 minggu dulu
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-field">
+              <label>Batas Overstock (× Max)</label>
+              <input type="number" value="1.5" step="0.1">
+            </div>
+            <div class="form-field">
+              <label>Min Forecast agar Diproduksi</label>
+              <input type="number" value="6">
+              <div class="hint">pcs/bulan</div>
+            </div>
+          </div>
+
+          <div style="margin-top:16px;padding-top:14px;border-top:1px solid var(--line);display:flex;justify-content:flex-end;gap:10px;">
+            <button class="btn">Reset ke Default</button>
+            <button class="btn-primary">Simpan Parameter</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-head">
+          <div>
+            <div class="panel-title">Aturan Status PPIC</div>
+            <div class="panel-sub">Referensi arti setiap status</div>
+          </div>
+        </div>
+        <table class="data-table">
+          <thead>
+            <tr><th>Status</th><th>Arti</th><th>Tindakan</th></tr>
+          </thead>
+          <tbody>
+            <tr><td><span class="badge neg">HABIS</span></td><td>Stock 0 padahal masih laku</td><td>Produksi segera, pertimbangkan pre-order</td></tr>
+            <tr><td><span class="badge warn">PRODUKSI</span></td><td>Stock ≤ Min Stock</td><td>Buat PO produksi sebesar Saran Qty minggu ini</td></tr>
+            <tr><td><span class="badge pos">AMAN</span></td><td>Stock di atas Min Stock</td><td>Tidak perlu produksi, pantau review berikutnya</td></tr>
+            <tr><td><span class="badge yellow">OVERSTOCK</span></td><td>Stock di atas Max × 1,5</td><td>Jangan produksi, pertimbangkan diskon/bundling</td></tr>
+            <tr><td><span class="badge purple">SLOW MOVING</span></td><td>Forecast &lt; 6 pcs/bulan</td><td>Tidak diproduksi ulang, habiskan stock</td></tr>
+            <tr><td><span class="badge grey">STOP</span></td><td>Tidak ada sales + stock 0</td><td>SKU di-discontinue</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<!-- ═══════════════ MODAL: BARANG MASUK (MULTI-SKU) ═══════════════ -->
+<div class="modal-overlay" id="modal-masuk">
+  <div class="modal wide">
+    <div class="modal-head">
+      <div>
+        <div class="modal-title">+ Catat Barang Masuk</div>
+        <div class="modal-sub">Bisa input banyak SKU sekaligus dalam 1 catatan · Auto-update Stock Live</div>
+      </div>
+      <button class="modal-close" onclick="closeModal('modal-masuk')">✕</button>
+    </div>
+
+    <div class="form-row-3">
+      <div class="form-field">
+        <label>Tipe Barang Masuk</label>
+        <select>
+          <option>Produksi Selesai (dari konveksi)</option>
+          <option>Retur dari Customer</option>
+          <option>Adjustment + (Stock Opname)</option>
+          <option>Transfer Masuk</option>
+        </select>
+      </div>
+      <div class="form-field">
+        <label>Tanggal</label>
+        <input type="date" value="2026-10-17">
+      </div>
+      <div class="form-field">
+        <label>Ref Batch (Opsional)</label>
+        <input type="text" placeholder="BATCH-2026-035">
+      </div>
+    </div>
+
+    <div class="form-field">
+      <label>Catatan (Opsional)</label>
+      <input type="text" placeholder="Konveksi GKS selesai, dll...">
+    </div>
+
+    <div style="display:flex;justify-content:space-between;align-items:flex-end;margin:16px 0 8px;">
+      <div>
+        <div style="font-size:11px;font-weight:700;color:var(--grey-1);letter-spacing:0.06em;text-transform:uppercase;">Daftar SKU dalam Catatan</div>
+        <div style="font-size:12px;color:var(--grey-1);margin-top:2px;">Ketik di kolom SKU untuk cari · Tambah baris untuk SKU lain</div>
+      </div>
+      <button class="btn btn-sm" onclick="addRowMasuk()">+ Tambah SKU</button>
+    </div>
+
+    <table class="sku-row-table">
+      <thead>
+        <tr>
+          <th style="width:50%;">SKU</th>
+          <th class="num" style="width:120px;">Qty (pcs)</th>
+          <th style="width:36px;"></th>
+        </tr>
+      </thead>
+      <tbody id="masuk-rows">
+        <tr>
+          <td>
+            <div class="combo">
+              <input type="text" placeholder="Ketik untuk cari SKU..." oninput="filterCombo(this)" onfocus="this.parentElement.classList.add('open')" onblur="setTimeout(() => this.parentElement.classList.remove('open'), 150)">
+              <div class="combo-dropdown">
+                <div class="combo-opt" onmousedown="pickCombo(this)"><div class="sku-code">SOLEASKORT-BLACK-ML</div><div class="sku-name">Solea Mini Skort · Black · S/M</div></div>
+                <div class="combo-opt" onmousedown="pickCombo(this)"><div class="sku-code">POLLYTOP-BLUE-XSS</div><div class="sku-name">Polly Tanktop · Blue · XS/S</div></div>
+                <div class="combo-opt" onmousedown="pickCombo(this)"><div class="sku-code">MONACOTOP-WHITE-ML</div><div class="sku-name">Monaco Linen Top · BW · S/M</div></div>
+                <div class="combo-opt" onmousedown="pickCombo(this)"><div class="sku-code">CLAUDIESKIRT-WHITE-ML</div><div class="sku-name">Claudie Midi Skirt · BW · S/M</div></div>
+                <div class="combo-opt" onmousedown="pickCombo(this)"><div class="sku-code">ELOISESKIRT-WHITE-AS</div><div class="sku-name">Eloise Midi Skirt · White · All size</div></div>
+                <div class="combo-opt" onmousedown="pickCombo(this)"><div class="sku-code">COASTALTOP-BROWN-XSS</div><div class="sku-name">Coastal LST · Brown · XS/S</div></div>
+                <div class="combo-opt" onmousedown="pickCombo(this)"><div class="sku-code">LYNTOP-BLACK-AS</div><div class="sku-name">Lyn Off Shoulder · Black · All size</div></div>
+              </div>
+            </div>
+          </td>
+          <td class="num"><input type="number" class="qty-input" placeholder="0"></td>
+          <td><button class="row-del" onclick="deleteRow(this)">✕</button></td>
+        </tr>
+        <tr>
+          <td>
+            <div class="combo">
+              <input type="text" placeholder="Ketik untuk cari SKU..." oninput="filterCombo(this)" onfocus="this.parentElement.classList.add('open')" onblur="setTimeout(() => this.parentElement.classList.remove('open'), 150)">
+              <div class="combo-dropdown">
+                <div class="combo-opt" onmousedown="pickCombo(this)"><div class="sku-code">SOLEASKORT-BLACK-ML</div><div class="sku-name">Solea Mini Skort · Black · S/M</div></div>
+                <div class="combo-opt" onmousedown="pickCombo(this)"><div class="sku-code">POLLYTOP-BLUE-XSS</div><div class="sku-name">Polly Tanktop · Blue · XS/S</div></div>
+                <div class="combo-opt" onmousedown="pickCombo(this)"><div class="sku-code">MONACOTOP-WHITE-ML</div><div class="sku-name">Monaco Linen Top · BW · S/M</div></div>
+                <div class="combo-opt" onmousedown="pickCombo(this)"><div class="sku-code">CLAUDIESKIRT-WHITE-ML</div><div class="sku-name">Claudie Midi Skirt · BW · S/M</div></div>
+                <div class="combo-opt" onmousedown="pickCombo(this)"><div class="sku-code">ELOISESKIRT-WHITE-AS</div><div class="sku-name">Eloise Midi Skirt · White · All size</div></div>
+              </div>
+            </div>
+          </td>
+          <td class="num"><input type="number" class="qty-input" placeholder="0"></td>
+          <td><button class="row-del" onclick="deleteRow(this)">✕</button></td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div class="modal-actions">
+      <button class="btn" onclick="openModal('modal-upload-masuk');closeModal('modal-masuk')">
+        <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+        Upload Excel instead
+      </button>
+      <div class="modal-actions-right">
+        <button class="btn" onclick="closeModal('modal-masuk')">Batal</button>
+        <button class="btn-pos" onclick="closeModal('modal-masuk');alert('✓ Barang masuk tersimpan. Stock Live sudah ter-update.')">Simpan Barang Masuk</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════ MODAL: BARANG KELUAR (MULTI-SKU) ═══════════════ -->
+<div class="modal-overlay" id="modal-keluar">
+  <div class="modal wide">
+    <div class="modal-head">
+      <div>
+        <div class="modal-title">− Catat Barang Keluar</div>
+        <div class="modal-sub">Bisa input banyak SKU sekaligus dalam 1 catatan · Auto-update Stock Live</div>
+      </div>
+      <button class="modal-close" onclick="closeModal('modal-keluar')">✕</button>
+    </div>
+
+    <div class="form-row-3">
+      <div class="form-field">
+        <label>Tipe Barang Keluar</label>
+        <select>
+          <option>Sales</option>
+          <option>Damage / Reject</option>
+          <option>Giveaway / Marketing</option>
+          <option>Adjustment − (Stock Opname)</option>
+          <option>Transfer Keluar</option>
+        </select>
+      </div>
+      <div class="form-field">
+        <label>Tanggal</label>
+        <input type="date" value="2026-10-17">
+      </div>
+      <div class="form-field">
+        <label>Channel / Sumber</label>
+        <select>
+          <option>Shopee</option>
+          <option>TikTok Shop</option>
+          <option>Instagram</option>
+          <option>Website PB</option>
+          <option>Offline / Lainnya</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="form-field">
+      <label>Catatan (Opsional)</label>
+      <input type="text" placeholder="Rekap sales harian, live selling, dll...">
+    </div>
+
+    <div style="display:flex;justify-content:space-between;align-items:flex-end;margin:16px 0 8px;">
+      <div>
+        <div style="font-size:11px;font-weight:700;color:var(--grey-1);letter-spacing:0.06em;text-transform:uppercase;">Daftar SKU dalam Catatan</div>
+        <div style="font-size:12px;color:var(--grey-1);margin-top:2px;">Ketik di kolom SKU untuk cari · Tambah baris untuk SKU lain</div>
+      </div>
+      <button class="btn btn-sm" onclick="addRowKeluar()">+ Tambah SKU</button>
+    </div>
+
+    <table class="sku-row-table">
+      <thead>
+        <tr>
+          <th style="width:50%;">SKU</th>
+          <th class="num" style="width:120px;">Qty (pcs)</th>
+          <th style="width:36px;"></th>
+        </tr>
+      </thead>
+      <tbody id="keluar-rows">
+        <tr>
+          <td>
+            <div class="combo">
+              <input type="text" placeholder="Ketik untuk cari SKU..." oninput="filterCombo(this)" onfocus="this.parentElement.classList.add('open')" onblur="setTimeout(() => this.parentElement.classList.remove('open'), 150)">
+              <div class="combo-dropdown">
+                <div class="combo-opt" onmousedown="pickCombo(this)"><div class="sku-code">POLLYTOP-BLUE-XSS</div><div class="sku-name">Polly Tanktop · Blue · XS/S</div></div>
+                <div class="combo-opt" onmousedown="pickCombo(this)"><div class="sku-code">SOLEASKORT-BLACK-XSS</div><div class="sku-name">Solea Mini Skort · Black · XS/S</div></div>
+                <div class="combo-opt" onmousedown="pickCombo(this)"><div class="sku-code">COASTALTOP-GRAY-ML</div><div class="sku-name">Coastal LST · Gray · S/M</div></div>
+                <div class="combo-opt" onmousedown="pickCombo(this)"><div class="sku-code">CLAUDIESKIRT-WHITE-ML</div><div class="sku-name">Claudie Midi Skirt · BW · S/M</div></div>
+                <div class="combo-opt" onmousedown="pickCombo(this)"><div class="sku-code">ELOISESKIRT-BLACK-AS</div><div class="sku-name">Eloise Midi Skirt · Black · All size</div></div>
+                <div class="combo-opt" onmousedown="pickCombo(this)"><div class="sku-code">LYNTOP-WHITE-AS</div><div class="sku-name">Lyn Off Shoulder · BW · All size</div></div>
+              </div>
+            </div>
+          </td>
+          <td class="num"><input type="number" class="qty-input" placeholder="0"></td>
+          <td><button class="row-del" onclick="deleteRow(this)">✕</button></td>
+        </tr>
+        <tr>
+          <td>
+            <div class="combo">
+              <input type="text" placeholder="Ketik untuk cari SKU..." oninput="filterCombo(this)" onfocus="this.parentElement.classList.add('open')" onblur="setTimeout(() => this.parentElement.classList.remove('open'), 150)">
+              <div class="combo-dropdown">
+                <div class="combo-opt" onmousedown="pickCombo(this)"><div class="sku-code">POLLYTOP-BLUE-XSS</div><div class="sku-name">Polly Tanktop · Blue · XS/S</div></div>
+                <div class="combo-opt" onmousedown="pickCombo(this)"><div class="sku-code">SOLEASKORT-BLACK-XSS</div><div class="sku-name">Solea Mini Skort · Black · XS/S</div></div>
+                <div class="combo-opt" onmousedown="pickCombo(this)"><div class="sku-code">COASTALTOP-GRAY-ML</div><div class="sku-name">Coastal LST · Gray · S/M</div></div>
+              </div>
+            </div>
+          </td>
+          <td class="num"><input type="number" class="qty-input" placeholder="0"></td>
+          <td><button class="row-del" onclick="deleteRow(this)">✕</button></td>
+        </tr>
+        <tr>
+          <td>
+            <div class="combo">
+              <input type="text" placeholder="Ketik untuk cari SKU..." oninput="filterCombo(this)" onfocus="this.parentElement.classList.add('open')" onblur="setTimeout(() => this.parentElement.classList.remove('open'), 150)">
+              <div class="combo-dropdown">
+                <div class="combo-opt" onmousedown="pickCombo(this)"><div class="sku-code">POLLYTOP-BLUE-XSS</div><div class="sku-name">Polly Tanktop · Blue · XS/S</div></div>
+                <div class="combo-opt" onmousedown="pickCombo(this)"><div class="sku-code">SOLEASKORT-BLACK-XSS</div><div class="sku-name">Solea Mini Skort · Black · XS/S</div></div>
+              </div>
+            </div>
+          </td>
+          <td class="num"><input type="number" class="qty-input" placeholder="0"></td>
+          <td><button class="row-del" onclick="deleteRow(this)">✕</button></td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div class="modal-actions">
+      <button class="btn" onclick="openModal('modal-upload-keluar');closeModal('modal-keluar')">
+        <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+        Upload Excel instead
+      </button>
+      <div class="modal-actions-right">
+        <button class="btn" onclick="closeModal('modal-keluar')">Batal</button>
+        <button class="btn-neg" onclick="closeModal('modal-keluar');alert('✓ Barang keluar tersimpan. Stock Live sudah ter-update.')">Simpan Barang Keluar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════ MODAL: UPLOAD EXCEL ═══════════════ -->
+<div class="modal-overlay" id="modal-upload-masuk">
+  <div class="modal">
+    <div class="modal-head">
+      <div>
+        <div class="modal-title">Upload Excel — Barang Masuk</div>
+        <div class="modal-sub">Import bulk dari file Excel · Format kolom: SKU, Qty, Tipe, Catatan</div>
+      </div>
+      <button class="modal-close" onclick="closeModal('modal-upload-masuk')">✕</button>
+    </div>
+
+    <div class="upload-area" onclick="document.getElementById('file-masuk').click()">
+      <div class="icon">📥</div>
+      <div class="title">Klik untuk pilih file atau drag & drop</div>
+      <div class="sub">Excel (.xlsx) atau CSV · Max 5 MB · <a href="#">Download template</a></div>
+      <input type="file" id="file-masuk" accept=".xlsx,.csv" style="display:none;">
+    </div>
+
+    <div class="info-banner">
+      <div class="head">Format Excel</div>
+      <div>Kolom wajib: <strong>SKU</strong> (kode SKU), <strong>Qty</strong> (angka), <strong>Tipe</strong> (Produksi/Retur/Adjustment)<br>
+      Kolom opsional: <strong>Tanggal</strong>, <strong>Ref Batch</strong>, <strong>Catatan</strong></div>
+    </div>
+
+    <div class="modal-actions">
+      <div></div>
+      <div class="modal-actions-right">
+        <button class="btn" onclick="closeModal('modal-upload-masuk')">Batal</button>
+        <button class="btn-pos" onclick="closeModal('modal-upload-masuk');alert('✓ Excel di-process. 24 baris berhasil diimport ke Stock Live.')">Upload & Process</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="modal-upload-keluar">
+  <div class="modal">
+    <div class="modal-head">
+      <div>
+        <div class="modal-title">Upload Excel — Barang Keluar</div>
+        <div class="modal-sub">Import bulk sales/damage/giveaway dari file Excel</div>
+      </div>
+      <button class="modal-close" onclick="closeModal('modal-upload-keluar')">✕</button>
+    </div>
+
+    <div class="upload-area" onclick="document.getElementById('file-keluar').click()">
+      <div class="icon">📤</div>
+      <div class="title">Klik untuk pilih file atau drag & drop</div>
+      <div class="sub">Excel (.xlsx) atau CSV · Max 5 MB · <a href="#">Download template</a></div>
+      <input type="file" id="file-keluar" accept=".xlsx,.csv" style="display:none;">
+    </div>
+
+    <div class="info-banner">
+      <div class="head">Format Excel</div>
+      <div>Kolom wajib: <strong>SKU</strong>, <strong>Qty</strong>, <strong>Tipe</strong> (Sales/Damage/Giveaway), <strong>Channel</strong><br>
+      Kolom opsional: <strong>Tanggal</strong>, <strong>Catatan</strong>. Export rekap harian dari Shopee/TikTok juga diterima.</div>
+    </div>
+
+    <div class="modal-actions">
+      <div></div>
+      <div class="modal-actions-right">
+        <button class="btn" onclick="closeModal('modal-upload-keluar')">Batal</button>
+        <button class="btn-neg" onclick="closeModal('modal-upload-keluar');alert('✓ Excel di-process. 42 baris berhasil diimport ke Stock Live.')">Upload & Process</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════ MODAL: BATCH PRODUKSI ═══════════════ -->
+<div class="modal-overlay" id="modal-batch">
+  <div class="modal wide">
+    <div class="modal-head">
+      <div>
+        <div class="modal-title">Buat Batch Produksi Baru</div>
+        <div class="modal-sub">Konfirmasi SKU & qty · Kirim ke konveksi</div>
+      </div>
+      <button class="modal-close" onclick="closeModal('modal-batch')">✕</button>
+    </div>
+
+    <div class="info-banner">
+      <div class="head">Ringkasan Batch</div>
+      <div><strong>3 SKU</strong> terpilih · Total <strong>104 pcs</strong> · Estimasi selesai <strong>31 Okt 2026</strong></div>
+    </div>
+
+    <div class="form-row-3">
+      <div class="form-field"><label>No Batch</label><input type="text" value="BATCH-2026-035"></div>
+      <div class="form-field"><label>Tanggal Kirim</label><input type="date" value="2026-10-17"></div>
+      <div class="form-field">
+        <label>Konveksi</label>
+        <select><option>Konveksi GKS — 60 pcs/hari</option><option>Konveksi Nusa — 45 pcs/hari</option></select>
+      </div>
+    </div>
+
+    <div style="font-size:11px;font-weight:700;color:var(--grey-1);letter-spacing:0.06em;text-transform:uppercase;margin:16px 0 8px;">SKU dalam Batch</div>
+
+    <table class="sku-row-table">
+      <thead><tr><th>SKU</th><th class="num">Saran</th><th class="num">Qty Final</th><th style="width:36px;"></th></tr></thead>
+      <tbody>
+        <tr>
+          <td><div class="cell-primary">Monaco Linen Top · BW · S/M</div><div class="cell-sku">MONACOTOP-WHITE-ML</div></td>
+          <td class="num">25</td>
+          <td class="num"><input type="number" class="qty-input" value="25"></td>
+          <td><button class="row-del" onclick="deleteRow(this)">✕</button></td>
+        </tr>
+        <tr>
+          <td><div class="cell-primary">Eloise Midi Skirt · White · All size</div><div class="cell-sku">ELOISESKIRT-WHITE-AS</div></td>
+          <td class="num">54</td>
+          <td class="num"><input type="number" class="qty-input" value="54"></td>
+          <td><button class="row-del" onclick="deleteRow(this)">✕</button></td>
+        </tr>
+        <tr>
+          <td><div class="cell-primary">Claudie Midi Skirt · BW · S/M</div><div class="cell-sku">CLAUDIESKIRT-WHITE-ML</div></td>
+          <td class="num">25</td>
+          <td class="num"><input type="number" class="qty-input" value="25"></td>
+          <td><button class="row-del" onclick="deleteRow(this)">✕</button></td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div class="form-field" style="margin-top:16px;">
+      <label>Catatan untuk Konveksi (Opsional)</label>
+      <textarea placeholder="Prioritas, deadline khusus..."></textarea>
+    </div>
+
+    <div class="modal-actions">
+      <div></div>
+      <div class="modal-actions-right">
+        <button class="btn" onclick="closeModal('modal-batch')">Batal</button>
+        <button class="btn-primary btn-blue" onclick="closeModal('modal-batch');alert('✓ Batch BATCH-2026-035 berhasil dibuat & dikirim ke Konveksi GKS.')">Kirim ke Konveksi</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════ MODAL: SKU DETAIL ═══════════════ -->
+<div class="modal-overlay" id="sku-modal-overlay">
+  <div class="modal">
+    <div class="modal-head">
+      <div>
+        <div style="font-size:11px;font-weight:700;color:var(--primary-2);letter-spacing:0.08em;text-transform:uppercase;margin-bottom:4px;">PPIC Detail</div>
+        <div class="modal-title" id="d-title">Monaco Linen Top · Broken white · S/M</div>
+        <div style="font-size:12.5px;color:var(--grey-1);" id="d-sub">SKU: MONACOTOP-WHITE-ML · Ranking A</div>
+      </div>
+      <button class="modal-close" onclick="closeModal('sku-modal-overlay')">✕</button>
+    </div>
+
+    <div class="kv-grid">
+      <div class="kv-item"><div class="k">Stock Sekarang</div><div class="v" style="color:var(--neg);">0<span class="unit">pcs</span></div></div>
+      <div class="kv-item"><div class="k">Min Stock</div><div class="v">15<span class="unit">pcs</span></div></div>
+      <div class="kv-item"><div class="k">Max Stock</div><div class="v">25<span class="unit">pcs</span></div></div>
+      <div class="kv-item"><div class="k">Forecast/Bulan</div><div class="v">21<span class="unit">pcs</span></div></div>
+      <div class="kv-item"><div class="k">Hari Cover</div><div class="v" style="color:var(--neg);">0<span class="unit">hari</span></div></div>
+      <div class="kv-item"><div class="k">Saran Qty</div><div class="v" style="color:var(--primary-2);">25<span class="unit">pcs</span></div></div>
+    </div>
+
+    <div style="margin-bottom:14px;display:flex;gap:8px;">
+      <button class="btn-pos" style="flex:1;" onclick="closeModal('sku-modal-overlay');openModal('modal-masuk')">+ Barang Masuk</button>
+      <button class="btn-neg" style="flex:1;" onclick="closeModal('sku-modal-overlay');openModal('modal-keluar')">− Barang Keluar</button>
+    </div>
+
+    <div style="font-size:13px;font-weight:700;color:var(--ink);margin-bottom:10px;">Riwayat Mutasi 30 Hari</div>
+    <div class="mut-list">
+      <div class="entry neg"><div class="when">16 Okt</div><div class="what">Sales Shopee<span class="sub">Rekap harian · 1 pcs</span></div><div class="qty"><div class="amount">−1</div><div class="balance">saldo 0</div></div></div>
+      <div class="entry neg"><div class="when">12 Okt</div><div class="what">Sales TikTok<span class="sub">Rekap harian · 2 pcs</span></div><div class="qty"><div class="amount">−2</div><div class="balance">saldo 1</div></div></div>
+      <div class="entry neg"><div class="when">08 Okt</div><div class="what">Sales Shopee<span class="sub">Rekap harian · 3 pcs</span></div><div class="qty"><div class="amount">−3</div><div class="balance">saldo 3</div></div></div>
+      <div class="entry pos"><div class="when">02 Okt</div><div class="what">BATCH-2026-030<span class="sub">Konveksi GKS selesai</span></div><div class="qty"><div class="amount">+6</div><div class="balance">saldo 6</div></div></div>
+    </div>
+  </div>
+</div>
+
+<script>
+  const SKU_OPTIONS = [
+    { code: 'SOLEASKORT-BLACK-ML', name: 'Solea Mini Skort · Black · S/M' },
+    { code: 'SOLEASKORT-BLACK-XSS', name: 'Solea Mini Skort · Black · XS/S' },
+    { code: 'POLLYTOP-BLUE-XSS', name: 'Polly Tanktop · Blue · XS/S' },
+    { code: 'POLLYTOP-BLUE-SM', name: 'Polly Tanktop · Blue · S/M' },
+    { code: 'MONACOTOP-WHITE-ML', name: 'Monaco Linen Top · BW · S/M' },
+    { code: 'MONACOTOP-BLACK-ML', name: 'Monaco Linen Top · Black · S/M' },
+    { code: 'CLAUDIESKIRT-WHITE-ML', name: 'Claudie Midi Skirt · BW · S/M' },
+    { code: 'ELOISESKIRT-WHITE-AS', name: 'Eloise Midi Skirt · White · All size' },
+    { code: 'ELOISESKIRT-BLACK-AS', name: 'Eloise Midi Skirt · Black · All size' },
+    { code: 'COASTALTOP-BROWN-XSS', name: 'Coastal LST · Brown · XS/S' },
+    { code: 'COASTALTOP-GRAY-ML', name: 'Coastal LST · Gray · S/M' },
+    { code: 'COASTALTOP-WHITE-XSS', name: 'Coastal LST · BW · XS/S' },
+    { code: 'LYNTOP-BLACK-AS', name: 'Lyn Off Shoulder · Black · All size' },
+    { code: 'LYNTOP-WHITE-AS', name: 'Lyn Off Shoulder · BW · All size' },
+  ];
+
+  function showView(id, el) {
+    document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+    document.getElementById('view-' + id).classList.add('active');
+    document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+    if (el) el.classList.add('active');
+    window.scrollTo(0, 0);
+  }
+  function toggleSidebar() {
+    document.querySelector('.app').classList.toggle('collapsed');
+    document.querySelector('.sidebar').classList.toggle('collapsed');
+  }
+  function openModal(id) { document.getElementById(id).classList.add('active'); }
+  function closeModal(id) { document.getElementById(id).classList.remove('active'); }
+
+  function openSKU(sku, name) {
+    document.getElementById('d-title').textContent = name;
+    document.getElementById('d-sub').textContent = 'SKU: ' + sku + ' · Ranking A';
+    openModal('sku-modal-overlay');
+  }
+  function openBatchModal() {
+    const checked = document.querySelectorAll('#view-ppic tbody input[type="checkbox"]:checked').length;
+    if (checked === 0) {
+      alert('Pilih dulu minimal 1 SKU dari tabel dengan centang kotaknya.');
+      return;
+    }
+    openModal('modal-batch');
+  }
+
+  // Combobox filter + pick
+  function filterCombo(input) {
+    const query = input.value.toLowerCase();
+    const dropdown = input.parentElement.querySelector('.combo-dropdown');
+    dropdown.querySelectorAll('.combo-opt').forEach(opt => {
+      const text = (opt.querySelector('.sku-code').textContent + ' ' + opt.querySelector('.sku-name').textContent).toLowerCase();
+      opt.style.display = text.includes(query) ? '' : 'none';
+    });
+  }
+  function pickCombo(opt) {
+    const code = opt.querySelector('.sku-code').textContent;
+    const name = opt.querySelector('.sku-name').textContent;
+    const input = opt.closest('.combo').querySelector('input');
+    input.value = code + ' — ' + name;
+    opt.closest('.combo').classList.remove('open');
+  }
+
+  function makeComboRow() {
+    const opts = SKU_OPTIONS.map(s => `<div class="combo-opt" onmousedown="pickCombo(this)"><div class="sku-code">${s.code}</div><div class="sku-name">${s.name}</div></div>`).join('');
+    return `
+      <tr>
+        <td>
+          <div class="combo">
+            <input type="text" placeholder="Ketik untuk cari SKU..." oninput="filterCombo(this)" onfocus="this.parentElement.classList.add('open')" onblur="setTimeout(() => this.parentElement.classList.remove('open'), 150)">
+            <div class="combo-dropdown">${opts}</div>
+          </div>
+        </td>
+        <td class="num"><input type="number" class="qty-input" placeholder="0"></td>
+        <td><button class="row-del" onclick="deleteRow(this)">✕</button></td>
+      </tr>
+    `;
+  }
+  function addRowMasuk() {
+    document.getElementById('masuk-rows').insertAdjacentHTML('beforeend', makeComboRow());
+  }
+  function addRowKeluar() {
+    document.getElementById('keluar-rows').insertAdjacentHTML('beforeend', makeComboRow());
+  }
+  function deleteRow(btn) {
+    const tbody = btn.closest('tbody');
+    if (tbody.children.length <= 1) {
+      alert('Minimal harus ada 1 baris SKU.');
+      return;
+    }
+    btn.closest('tr').remove();
+  }
+
+  // Batch count sync
+  document.addEventListener('change', (e) => {
+    if (e.target.matches('#view-ppic tbody input[type="checkbox"]')) {
+      const count = document.querySelectorAll('#view-ppic tbody input[type="checkbox"]:checked').length;
+      const el = document.getElementById('batch-count');
+      if (el) el.textContent = count;
+    }
+  });
+
+  document.querySelectorAll('.modal-overlay').forEach(m => {
+    m.addEventListener('click', (e) => { if (e.target === m) m.classList.remove('active'); });
+  });
+</script>
+</body>
+</html>
