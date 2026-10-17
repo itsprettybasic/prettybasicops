@@ -6,7 +6,12 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "test": "vitest run",
+    "seed:admin": "tsx scripts/seed-admin.ts",
+    "seed:demo": "tsx scripts/seed-demo.ts",
+    "seed:reset": "tsx scripts/seed-reset.ts",
+    "test:migration": "node scripts/test-migration.mjs"
   },
   "dependencies": {
     "@radix-ui/react-checkbox": "^1.4.1",
