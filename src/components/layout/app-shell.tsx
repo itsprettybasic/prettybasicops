@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -106,17 +107,12 @@ export function AppShell({
             collapsed ? "justify-center px-3.5" : "px-6",
           )}
         >
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[10px] bg-primary text-lg font-extrabold tracking-[-0.02em] text-white">
-            PB
-          </div>
-          {!collapsed && (
+          {collapsed ? (
+            <Image src="/logo-mark.png" alt="Pretty Basic" width={40} height={40} className="h-10 w-10 shrink-0 rounded-[10px]" priority />
+          ) : (
             <div>
-              <div className="text-[15px] leading-tight font-bold tracking-[-0.01em] text-ink">
-                Pretty Basic
-              </div>
-              <div className="mt-0.5 text-[11px] leading-snug text-grey-1">
-                PPIC System
-              </div>
+              <Image src="/logo.png" alt="Pretty Basic" width={83} height={44} className="h-11 w-auto" priority />
+              <div className="mt-1.5 text-[11px] leading-snug text-grey-1">PPIC System</div>
             </div>
           )}
         </div>

@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Eye, EyeOff } from "lucide-react";
@@ -32,14 +33,9 @@ export default function LoginPage() {
   return (
     <div className="flex min-h-screen items-center justify-center bg-bg">
       <form onSubmit={submit} className="w-[400px] rounded-2xl border border-line bg-white p-8">
-        <div className="mb-7 flex items-center gap-3">
-          <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary text-lg font-extrabold tracking-[-0.02em] text-white">
-            PB
-          </div>
-          <div>
-            <div className="text-[17px] leading-tight font-bold tracking-[-0.01em] text-ink">Pretty Basic</div>
-            <div className="mt-0.5 text-[12px] text-grey-1">PPIC System</div>
-          </div>
+        <div className="mb-7 flex flex-col items-center text-center">
+          <Image src="/logo.png" alt="Pretty Basic" width={136} height={72} className="h-[72px] w-auto" priority />
+          <div className="mt-2.5 text-[12px] text-grey-1">PPIC System</div>
         </div>
 
         <div className="mb-4">
