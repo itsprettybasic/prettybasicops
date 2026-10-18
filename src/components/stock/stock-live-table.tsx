@@ -12,17 +12,12 @@ import { SearchInput } from "@/components/ui/search-input";
 import { FilterChip } from "@/components/ui/filter-chip";
 import { RankBadge, StatusBadge } from "@/components/ui/badge";
 import { CapacityBar } from "@/components/ui/capacity-bar";
-import { EmptyRow, Pagination, SkuCell } from "@/components/ui/table-parts";
+import { EmptyRow, Pagination, SkuCell, SortHeader } from "@/components/ui/table-parts";
 import { matchOption } from "@/components/ui/combobox";
 import { exportXlsx } from "@/lib/excel/download";
 import { fmtInt, fmtRupiahShort, fmtSigned } from "@/lib/format";
-import { cn } from "@/lib/cn";
+import { STATUS_PRIORITY } from "@/lib/ppic";
 import type { PpicRow } from "@/lib/data/ppic";
-
-export interface SkuMove {
-  in: number;
-  out: number;
-}
 
 export interface MovementSummary {
   qtyIn: number;
@@ -33,7 +28,9 @@ export interface MovementSummary {
 }
 
 type StockFilter = "all" | "zero" | "low" | "high";
-type SortKey = "stock_asc" | "stock_desc" | "name";
+type SortKey = "name" | "rank" | "stock" | "min" | "max" | "pct" | "status";
+
+const RANK_ORDER = { A: 0, B: 1, C: 2 } as const;
 
 const FILTERS: { key: StockFilter; label: string; test: (stock: number) => boolean }[] = [
   { key: "all", label: "Semua", test: () => true },
@@ -47,6 +44,26 @@ function capacityPct(row: PpicRow): number | null {
   return (Math.max(0, row.stock) / row.maxStock) * 100;
 }
 
+/** Nilai kosong (—) selalu di bawah, apa pun arah urutannya. */
+function sortValue(row: PpicRow, key: SortKey): number | null {
+  switch (key) {
+    case "rank":
+      return RANK_ORDER[row.rank];
+    case "stock":
+      return row.stock;
+    case "min":
+      return row.minStock;
+    case "max":
+      return row.maxStock;
+    case "pct":
+      return capacityPct(row);
+    case "status":
+      return STATUS_PRIORITY[row.status];
+    default:
+      return null;
+  }
+}
+
 function capacityTone(row: PpicRow, pct: number) {
   if (pct > 100) return "yellow" as const;
   if (row.stock <= 0) return "neg" as const;
@@ -55,18 +72,16 @@ function capacityTone(row: PpicRow, pct: number) {
 }
 
 export function StockLiveTable({
-  moves,
   summary,
   loadError,
 }: {
-  moves: Record<string, SkuMove>;
   summary: MovementSummary;
   loadError: string | null;
 }) {
   const { rows, today, openStockModal, openSkuDetail } = useAppData();
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState<StockFilter>("all");
-  const [sort, setSort] = useState<SortKey>("stock_asc");
+  const [sort, setSort] = useState<{ key: SortKey; desc: boolean }>({ key: "name", desc: false });
   const [page, setPage] = useState(0);
   const [pageSize, setPageSize] = useState(25);
   const [exporting, setExporting] = useState(false);
@@ -110,16 +125,31 @@ export function StockLiveTable({
   const visible = useMemo(() => {
     const test = FILTERS.find((f) => f.key === filter)!.test;
     const list = searched.filter((r) => test(r.stock));
+    const byName = (a: PpicRow, b: PpicRow) => a.label.localeCompare(b.label, "id");
+    const dir = sort.desc ? -1 : 1;
     list.sort((a, b) => {
-      if (sort === "name") return a.label.localeCompare(b.label, "id");
-      const diff = sort === "stock_asc" ? a.stock - b.stock : b.stock - a.stock;
-      return diff !== 0 ? diff : a.label.localeCompare(b.label, "id");
+      if (sort.key === "name") return dir * byName(a, b);
+      const va = sortValue(a, sort.key);
+      const vb = sortValue(b, sort.key);
+      if (va === null || vb === null) return va === vb ? byName(a, b) : va === null ? 1 : -1;
+      return dir * (va - vb) || byName(a, b);
     });
     return list;
   }, [searched, filter, sort]);
 
   const pageRows = visible.slice(page * pageSize, (page + 1) * pageSize);
   const net = summary.qtyIn - summary.qtyOut;
+
+  function toggleSort(key: SortKey) {
+    setSort((s) => (s.key === key ? { key, desc: !s.desc } : { key, desc: false }));
+    setPage(0);
+  }
+
+  function sortHeader(key: SortKey, label: string, num = false) {
+    return (
+      <SortHeader label={label} num={num} active={sort.key === key} desc={sort.desc} onClick={() => toggleSort(key)} />
+    );
+  }
 
   function resetPage<T>(setter: (v: T) => void) {
     return (v: T) => {
@@ -151,8 +181,6 @@ export function StockLiveTable({
               return pct === null ? null : Math.round(pct);
             },
           },
-          { header: "Masuk 7d", numFmt: "#,##0", value: (r) => moves[r.id]?.in ?? 0 },
-          { header: "Keluar 7d", numFmt: "#,##0", value: (r) => moves[r.id]?.out ?? 0 },
           { header: "Status", width: 14, value: (r) => r.status },
         ],
       });
@@ -225,32 +253,23 @@ export function StockLiveTable({
               {f.label}
             </FilterChip>
           ))}
-          <div className="ml-auto">
-            <select className="select-input" value={sort} onChange={(e) => resetPage(setSort)(e.target.value as SortKey)}>
-              <option value="stock_asc">Urut: Stock terendah</option>
-              <option value="stock_desc">Urut: Stock tertinggi</option>
-              <option value="name">Urut: Nama</option>
-            </select>
-          </div>
         </Toolbar>
 
         <table className="data-table">
           <thead>
             <tr>
-              <th>Produk / SKU</th>
-              <th className="w-[70px]">Ranking</th>
-              <th className="num">Stock</th>
-              <th className="num">Min</th>
-              <th className="num">Max</th>
-              <th className="num">% Kapasitas</th>
-              <th className="num">Masuk 7d</th>
-              <th className="num">Keluar 7d</th>
-              <th>Status</th>
+              {sortHeader("name", "Produk / SKU")}
+              {sortHeader("rank", "Ranking")}
+              {sortHeader("stock", "Stock", true)}
+              {sortHeader("min", "Min", true)}
+              {sortHeader("max", "Max", true)}
+              {sortHeader("pct", "% Kapasitas", true)}
+              {sortHeader("status", "Status")}
             </tr>
           </thead>
           <tbody>
             {pageRows.length === 0 && (
-              <EmptyRow colSpan={9}>
+              <EmptyRow colSpan={7}>
                 {rows.length === 0 ? (
                   <>
                     Belum ada SKU.{" "}
@@ -265,7 +284,6 @@ export function StockLiveTable({
             )}
             {pageRows.map((r) => {
               const pct = capacityPct(r);
-              const mv = moves[r.id];
               const stockTone =
                 r.stock <= 0 ? "text-neg" : r.minStock !== null && r.stock <= r.minStock ? "text-warn" : undefined;
               return (
@@ -284,8 +302,6 @@ export function StockLiveTable({
                   <td className="num">
                     <CapacityBar pct={pct} tone={pct === null ? undefined : capacityTone(r, pct)} />
                   </td>
-                  <td className={cn("num", mv?.in ? "text-pos" : "text-grey-2")}>{mv?.in ? fmtSigned(mv.in) : "0"}</td>
-                  <td className={cn("num", mv?.out ? "text-neg" : "text-grey-2")}>{mv?.out ? fmtSigned(-mv.out) : "0"}</td>
                   <td>
                     <StatusBadge status={r.status} />
                   </td>

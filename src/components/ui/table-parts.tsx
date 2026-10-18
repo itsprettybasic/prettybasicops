@@ -122,7 +122,7 @@ export function SortHeader({
       <span className={cn("inline-flex flex-col", num && "items-end")}>
         <span>
           {label}
-          <span className={cn("ml-1", !active && "opacity-0")}>{desc ? "↓" : "↑"}</span>
+          <span className={cn("ml-1", !active && "opacity-35")}>{active ? (desc ? "↓" : "↑") : "↕"}</span>
         </span>
         {sub && <span className="text-[9.5px] font-semibold tracking-normal normal-case text-grey-2">{sub}</span>}
       </span>

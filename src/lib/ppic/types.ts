@@ -6,7 +6,6 @@ export type PpicStatus =
   | "PRODUKSI"
   | "AMAN"
   | "OVERSTOCK"
-  | "SLOW MOVING"
   | "DEADSTOCK"
   | "STOP"
   | "BARU";

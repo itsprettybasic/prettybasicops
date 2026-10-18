@@ -19,7 +19,7 @@ import { toast } from "sonner";
 import type { PpicRow } from "@/lib/data/ppic";
 import { STATUS_PRIORITY, type PpicStatus, type RankClass } from "@/lib/ppic";
 import { exportXlsx } from "@/lib/excel/download";
-import { fmtDec, fmtInt } from "@/lib/format";
+import { fmtInt } from "@/lib/format";
 import { cn } from "@/lib/cn";
 import { useAppData } from "@/components/providers/app-data";
 import { StatCard, StatGrid } from "@/components/ui/stat-card";
@@ -31,7 +31,7 @@ import { RankBadge, StatusBadge } from "@/components/ui/badge";
 import { EmptyRow, Pagination, SkuCell, SortHeader } from "@/components/ui/table-parts";
 import { BatchModal } from "./batch-modal";
 
-type StatusFilter = "all" | "HABIS" | "PRODUKSI" | "AMAN" | "OVERSTOCK" | "SLOW" | "BARU";
+type StatusFilter = "all" | "HABIS" | "PRODUKSI" | "AMAN" | "OVERSTOCK" | "DEADSTOCK" | "BARU";
 
 const STATUS_CHIPS: { key: StatusFilter; label: string }[] = [
   { key: "all", label: "Semua" },
@@ -39,7 +39,7 @@ const STATUS_CHIPS: { key: StatusFilter; label: string }[] = [
   { key: "PRODUKSI", label: "Produksi" },
   { key: "AMAN", label: "Aman" },
   { key: "OVERSTOCK", label: "Overstock" },
-  { key: "SLOW", label: "Slow/Dead" },
+  { key: "DEADSTOCK", label: "Deadstock" },
   { key: "BARU", label: "Baru" },
 ];
 
@@ -47,7 +47,6 @@ const RANK_ORDER: Record<RankClass, number> = { A: 0, B: 1, C: 2 };
 
 function matchStatus(status: PpicStatus, filter: StatusFilter) {
   if (filter === "all") return true;
-  if (filter === "SLOW") return status === "SLOW MOVING" || status === "DEADSTOCK";
   return status === filter;
 }
 
@@ -94,7 +93,7 @@ export function PpicTable({ rows, today }: { rows: PpicRow[]; today: string }) {
   const products = useMemo(() => [...new Set(rows.map((r) => r.product_name))].sort((a, b) => a.localeCompare(b)), [rows]);
 
   const counts = useMemo(() => {
-    const c: Record<StatusFilter, number> = { all: rows.length, HABIS: 0, PRODUKSI: 0, AMAN: 0, OVERSTOCK: 0, SLOW: 0, BARU: 0 };
+    const c: Record<StatusFilter, number> = { all: rows.length, HABIS: 0, PRODUKSI: 0, AMAN: 0, OVERSTOCK: 0, DEADSTOCK: 0, BARU: 0 };
     let saran = 0;
     let saranSku = 0;
     for (const r of rows) {
@@ -345,18 +344,18 @@ export function PpicTable({ rows, today }: { rows: PpicRow[]; today: string }) {
           tone="yellow"
           valueTone="yellow"
           value={fmtInt(counts.OVERSTOCK)}
-          sub={`Di atas Max × ${fmtDec(params.overstock_multiplier)}`}
+          sub="Stock kebanyakan / kurang laku"
           active={status === "OVERSTOCK"}
           onClick={() => setStatusFilter("OVERSTOCK")}
         />
         <StatCard
-          label="Slow/Dead"
+          label="Deadstock"
           tone="purple"
           valueTone="purple"
-          value={fmtInt(counts.SLOW)}
-          sub="Forecast rendah / tidak laku"
-          active={status === "SLOW"}
-          onClick={() => setStatusFilter("SLOW")}
+          value={fmtInt(counts.DEADSTOCK)}
+          sub={`Tidak laku ${params.deadstock_days} hari`}
+          active={status === "DEADSTOCK"}
+          onClick={() => setStatusFilter("DEADSTOCK")}
         />
         <StatCard
           label="Saran Produksi"

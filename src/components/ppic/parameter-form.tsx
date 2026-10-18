@@ -319,7 +319,7 @@ export function ParameterForm({ initial, updatedAt }: { initial: PpicParams; upd
             error={errors.min_forecast_to_produce}
             step="any"
             suffix="pcs"
-            hint="pcs/bulan · di bawah ini = SLOW MOVING / STOP"
+            hint="pcs/bulan · di bawah ini = OVERSTOCK / STOP"
           />
         </div>
         <div className="mb-4 grid grid-cols-2 gap-4">

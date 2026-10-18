@@ -22,7 +22,8 @@ export function computeStatus(input: StatusInput, params: PpicParams, today: str
   const noRecentSales = lastSaleDate === null || daysBetween(lastSaleDate, today) > params.deadstock_days;
   if (stock > 0 && noRecentSales && daysLive >= params.deadstock_days) return "DEADSTOCK";
 
-  if (lowForecast) return "SLOW MOVING";
+  // Forecast rendah tapi stock masih ada = kebanyakan stock juga → tidak diproduksi, masuk OVERSTOCK
+  if (lowForecast) return "OVERSTOCK";
   if (stock <= 0) return "HABIS";
   if (available <= minStock) return "PRODUKSI";
   if (stock > maxStock * params.overstock_multiplier) return "OVERSTOCK";
@@ -35,7 +36,6 @@ export const STATUS_PRIORITY: Record<PpicStatus, number> = {
   PRODUKSI: 1,
   AMAN: 2,
   OVERSTOCK: 3,
-  "SLOW MOVING": 4,
   DEADSTOCK: 4,
   STOP: 5,
   BARU: 6,

@@ -32,7 +32,7 @@ interface ProductAgg {
   skus: PpicRow[];
 }
 
-const OVER_SLOW_DEAD = new Set(["OVERSTOCK", "SLOW MOVING", "DEADSTOCK"]);
+const OVER_SLOW_DEAD = new Set(["OVERSTOCK", "DEADSTOCK"]);
 
 function aggregate(rows: PpicRow[]): ProductAgg[] {
   const map = new Map<string, ProductAgg>();
@@ -148,7 +148,7 @@ export function RingkasanTable() {
           { header: "Stock", numFmt: "#,##0", value: (p) => p.stock },
           { header: "Habis", numFmt: "#,##0", value: (p) => p.habis },
           { header: "Produksi", numFmt: "#,##0", value: (p) => p.produksi },
-          { header: "Over/Slow/Dead", numFmt: "#,##0", value: (p) => p.overSlowDead },
+          { header: "Overstock/Dead", numFmt: "#,##0", value: (p) => p.overSlowDead },
           { header: "Saran Total", numFmt: "#,##0", value: (p) => p.suggestion },
         ],
       });
@@ -196,7 +196,7 @@ export function RingkasanTable() {
             <th className="num">Stock</th>
             <th className="num">Habis</th>
             <th className="num">Produksi</th>
-            <th className="num">Over/Slow/Dead</th>
+            <th className="num">Overstock/Dead</th>
             <th className="num">Saran Total</th>
           </tr>
         </thead>

@@ -118,9 +118,9 @@ describe("Status lain", () => {
     const r = computePpic(sku({ monthlySales: { "2026-07": 3, "2026-08": 3, "2026-09": 3 }, stock: 0 }), P, TODAY);
     expect(r.status).toBe("STOP");
   });
-  it("SLOW MOVING: forecast rendah, stock masih ada", () => {
+  it("OVERSTOCK: forecast rendah, stock masih ada", () => {
     const r = computePpic(sku({ monthlySales: { "2026-07": 3, "2026-08": 3, "2026-09": 3 }, stock: 8 }), P, TODAY);
-    expect(r.status).toBe("SLOW MOVING");
+    expect(r.status).toBe("OVERSTOCK");
   });
   it("DEADSTOCK: tidak ada sales 60 hari", () => {
     const r = computePpic(

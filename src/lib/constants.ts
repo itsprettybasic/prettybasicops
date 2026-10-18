@@ -22,7 +22,6 @@ export const STATUS_TONE: Record<PpicStatus, BadgeTone> = {
   PRODUKSI: "warn",
   AMAN: "pos",
   OVERSTOCK: "yellow",
-  "SLOW MOVING": "purple",
   DEADSTOCK: "purple",
   STOP: "grey",
   BARU: "info",
@@ -32,10 +31,9 @@ export const STATUS_RULES: { status: PpicStatus; meaning: string; action: string
   { status: "BARU", meaning: "Produk < 7 hari, belum ada forecast", action: "Tunggu data 1 minggu" },
   { status: "STOP", meaning: "Forecast di bawah batas minimal + stock 0", action: "SKU tidak diproduksi lagi" },
   { status: "DEADSTOCK", meaning: "Masih ada stock, tidak ada sales dalam batas hari deadstock", action: "Diskon / bundling / live selling" },
-  { status: "SLOW MOVING", meaning: "Forecast di bawah batas minimal, stock masih ada", action: "Jangan produksi ulang, habiskan stock" },
   { status: "HABIS", meaning: "Stock 0 padahal masih laku", action: "Produksi segera (prioritas 1), pertimbangkan pre-order" },
   { status: "PRODUKSI", meaning: "Stock + sedang produksi ≤ Min Stock", action: "Buat batch produksi sebesar Saran minggu ini" },
-  { status: "OVERSTOCK", meaning: "Stock di atas Max × batas overstock", action: "Jangan produksi, pertimbangkan promo" },
+  { status: "OVERSTOCK", meaning: "Stock kebanyakan: di atas Max × batas overstock, atau penjualan di bawah batas minimal", action: "Jangan produksi, habiskan stock / promo" },
   { status: "AMAN", meaning: "Stock di atas Min Stock", action: "Pantau di review berikutnya" },
 ];
 
