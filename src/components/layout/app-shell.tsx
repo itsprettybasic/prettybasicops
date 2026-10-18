@@ -9,6 +9,7 @@ import {
   ArrowUp,
   Box,
   ChevronLeft,
+  ClipboardCheck,
   Factory,
   KeyRound,
   LineChart,
@@ -22,7 +23,15 @@ import { signOut } from "@/app/actions/auth";
 
 const STORAGE_KEY = "pb-sidebar-collapsed";
 
-const NAV: { section: string; items: { href: string; label: string; icon: React.ElementType; badge?: boolean }[] }[] = [
+const NAV: {
+  section: string;
+  items: {
+    href: string;
+    label: string;
+    icon: React.ElementType;
+    badge?: boolean;
+  }[];
+}[] = [
   {
     section: "PPIC",
     items: [
@@ -30,6 +39,7 @@ const NAV: { section: string; items: { href: string; label: string; icon: React.
       { href: "/stock", label: "Stock Live", icon: Table },
       { href: "/barang-masuk", label: "Barang Masuk", icon: ArrowDown },
       { href: "/barang-keluar", label: "Barang Keluar", icon: ArrowUp },
+      { href: "/stock-opname", label: "Stock Opname", icon: ClipboardCheck },
       { href: "/batch", label: "Batch Produksi", icon: Factory },
     ],
   },
@@ -90,14 +100,23 @@ export function AppShell({
           collapsed ? "w-[68px]" : "w-[240px]",
         )}
       >
-        <div className={cn("flex items-center gap-3 pb-6", collapsed ? "justify-center px-3.5" : "px-6")}>
+        <div
+          className={cn(
+            "flex items-center gap-3 pb-6",
+            collapsed ? "justify-center px-3.5" : "px-6",
+          )}
+        >
           <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[10px] bg-primary text-lg font-extrabold tracking-[-0.02em] text-white">
             PB
           </div>
           {!collapsed && (
             <div>
-              <div className="text-[15px] leading-tight font-bold tracking-[-0.01em] text-ink">Pretty Basic</div>
-              <div className="mt-0.5 text-[11px] leading-snug text-grey-1">PPIC System</div>
+              <div className="text-[15px] leading-tight font-bold tracking-[-0.01em] text-ink">
+                Pretty Basic
+              </div>
+              <div className="mt-0.5 text-[11px] leading-snug text-grey-1">
+                PPIC System
+              </div>
             </div>
           )}
         </div>
@@ -113,7 +132,8 @@ export function AppShell({
               {group.section}
             </div>
             {group.items.map((item) => {
-              const active = pathname === item.href || pathname.startsWith(`${item.href}/`);
+              const active =
+                pathname === item.href || pathname.startsWith(`${item.href}/`);
               const Icon = item.icon;
               return (
                 <Link
@@ -128,7 +148,10 @@ export function AppShell({
                       : "border-l-transparent text-ink-3 hover:bg-bg hover:text-ink",
                   )}
                 >
-                  <Icon className="h-[18px] w-[18px] shrink-0" strokeWidth={1.8} />
+                  <Icon
+                    className="h-[18px] w-[18px] shrink-0"
+                    strokeWidth={1.8}
+                  />
                   {!collapsed && <span>{item.label}</span>}
                   {!collapsed && item.badge && alertCount > 0 && (
                     <span className="num ml-auto rounded-full bg-neg px-[7px] py-px text-[10.5px] font-bold text-white">
@@ -160,7 +183,9 @@ export function AppShell({
           </div>
           {!collapsed && (
             <div className="min-w-0 flex-1">
-              <div className="truncate text-[13px] font-semibold text-ink">{userName}</div>
+              <div className="truncate text-[13px] font-semibold text-ink">
+                {userName}
+              </div>
               <div className="mt-px text-[11px] text-grey-1">{userRole}</div>
             </div>
           )}
@@ -194,7 +219,13 @@ export function AppShell({
           collapsed ? "left-[52px]" : "left-[224px]",
         )}
       >
-        <ChevronLeft className={cn("h-3.5 w-3.5 transition-transform duration-[220ms]", collapsed && "rotate-180")} strokeWidth={2.2} />
+        <ChevronLeft
+          className={cn(
+            "h-3.5 w-3.5 transition-transform duration-[220ms]",
+            collapsed && "rotate-180",
+          )}
+          strokeWidth={2.2}
+        />
       </button>
 
       <main

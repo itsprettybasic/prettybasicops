@@ -8,7 +8,9 @@ create role authenticated; create role anon;
 create function auth.uid() returns uuid language sql stable as $$ select nullif(current_setting('request.jwt.claim.sub', true), '')::uuid $$;
 create function auth.jwt() returns jsonb language sql stable as $$ select coalesce(nullif(current_setting('request.jwt.claims', true), '')::jsonb, '{}'::jsonb) $$;
 `);
-await db.exec(fs.readFileSync('supabase/migrations/0001_init.sql', 'utf8').replace('create extension if not exists pgcrypto;', ''));
+for (const f of fs.readdirSync('supabase/migrations').sort()) {
+  await db.exec(fs.readFileSync(`supabase/migrations/${f}`, 'utf8').replace('create extension if not exists pgcrypto;', ''));
+}
 const r = await db.query(`
 with p as (insert into products(name) values ('Solea Mini Skort') returning id),
 s as (insert into skus(product_id, code, color, size, launch_date) select id, 'SOLEASKORT-BLACK-XSS','Black','XS/S','2026-01-10' from p returning id)
@@ -28,3 +30,8 @@ console.log((await db.query(`select * from movement_totals('2026-10-01','2026-10
 const d = (await db.query(`select id from stock_documents where type='sales'`)).rows[0].id;
 await db.query(`select void_stock_document($1,'salah input')`, [d]);
 console.log((await db.query(`select * from v_sku_stock`)).rows, (await db.query(`select next_batch_no(2026) n`)).rows);
+
+// Stock opname: stock 16 → hitung fisik 12 → Adjustment − 4
+console.log('opname', (await db.query(`select create_stock_opname('2026-10-05','gudang',$1) r`, [JSON.stringify([{sku_id: sku, counted: 12}])])).rows[0].r);
+console.log((await db.query(`select * from v_sku_stock`)).rows, (await db.query(`select doc_no, type, source, note from stock_documents where source='opname'`)).rows);
+console.log('opname no change', (await db.query(`select create_stock_opname('2026-10-05',null,$1) r`, [JSON.stringify([{sku_id: sku, counted: 12}])])).rows[0].r);

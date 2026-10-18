@@ -2,7 +2,7 @@
 
 import * as Popover from "@radix-ui/react-popover";
 import { Command } from "cmdk";
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { cn } from "@/lib/cn";
 
 export interface ComboOption {
@@ -65,6 +65,13 @@ export function Combobox({
   const anchorRef = useRef<HTMLDivElement>(null);
   const viaKeyboard = useRef(false);
 
+  // Dropdown selalu muncul di bawah input: kalau ruang di bawah sempit, geser input ke tengah layar dulu.
+  useEffect(() => {
+    if (!open) return;
+    const rect = anchorRef.current?.getBoundingClientRect();
+    if (rect && window.innerHeight - rect.bottom < 220) anchorRef.current?.scrollIntoView({ block: "center" });
+  }, [open]);
+
   const selected = options.find((o) => o.value === value) ?? null;
   const results = useMemo(() => {
     const out: ComboOption[] = [];
@@ -125,8 +132,10 @@ export function Combobox({
         <Popover.Portal>
           <Popover.Content
             data-combo-content
+            side="bottom"
             align="start"
             sideOffset={4}
+            avoidCollisions={false}
             onOpenAutoFocus={(e) => e.preventDefault()}
             onCloseAutoFocus={(e) => e.preventDefault()}
             onInteractOutside={(e) => {
@@ -135,7 +144,7 @@ export function Combobox({
             style={{ width: "var(--radix-popover-trigger-width)" }}
             className="z-[200] min-w-[220px] overflow-hidden rounded-lg border border-line bg-white shadow-[0_8px_24px_rgba(15,23,42,0.08)]"
           >
-            <Command.List className="max-h-[260px] overflow-y-auto">
+            <Command.List className="max-h-[min(260px,calc(var(--radix-popover-content-available-height)-12px))] overflow-y-auto">
               {results.length === 0 && (
                 <div className="px-3.5 py-3 text-[12.5px] text-grey-1">{emptyText}</div>
               )}

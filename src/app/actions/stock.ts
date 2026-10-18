@@ -60,6 +60,33 @@ export async function createStockDocuments(inputs: StockDocumentInput[]): Promis
   return { ok: true, data: { count } };
 }
 
+export interface OpnameResult {
+  counted: number;
+  changed: number;
+  plus: number;
+  minus: number;
+}
+
+/** Stock opname: sistem membuat Adjustment +/− sebesar selisih, sehingga stock = hasil hitung fisik. */
+export async function createStockOpname(input: {
+  doc_date: string;
+  note: string;
+  lines: { sku_id: string; counted: number }[];
+}): Promise<ActionResult<OpnameResult>> {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(input.doc_date)) return fail("Tanggal tidak valid");
+  if (input.lines.length === 0) return fail("Isi minimal 1 stock fisik");
+  if (input.lines.some((l) => !Number.isInteger(l.counted) || l.counted < 0)) return fail("Stock fisik harus angka bulat ≥ 0");
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("create_stock_opname", {
+    p_doc_date: input.doc_date,
+    p_note: input.note,
+    p_lines: input.lines,
+  });
+  if (error) return fail(error.message);
+  revalidatePath("/", "layout");
+  return { ok: true, data: data as OpnameResult };
+}
+
 export async function voidStockDocument(id: string, reason: string): Promise<ActionResult> {
   if (!reason.trim()) return fail("Alasan wajib diisi");
   const supabase = await createClient();

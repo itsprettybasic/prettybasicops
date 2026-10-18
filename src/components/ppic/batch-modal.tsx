@@ -22,10 +22,6 @@ interface Line {
   qty: string;
 }
 
-function konveksiLabel(k: Konveksi) {
-  return k.capacity_per_day ? `${k.name} — ${fmtInt(k.capacity_per_day)} pcs/hari` : k.name;
-}
-
 export function BatchModal({
   open,
   onOpenChange,
@@ -78,7 +74,7 @@ export function BatchModal({
     };
   }, [today]);
 
-  const konveksiOptions: ComboOption[] = (konveksi ?? []).map((k) => ({ value: k.id, label: konveksiLabel(k) }));
+  const konveksiOptions: ComboOption[] = (konveksi ?? []).map((k) => ({ value: k.id, label: k.name }));
   const lineIds = useMemo(() => new Set(lines.map((l) => l.skuId)), [lines]);
   const addOptions = useMemo(() => skuOptions.filter((o) => !lineIds.has(o.value)), [skuOptions, lineIds]);
 
@@ -88,9 +84,6 @@ export function BatchModal({
   });
   const totalQty = parsed.reduce((s, l) => s + (l.qtyNum ?? 0), 0);
   const estDone = sentDate ? format(addDays(parseISO(sentDate), params.lead_time_days), "yyyy-MM-dd") : null;
-  const selectedKonveksi = konveksi?.find((k) => k.id === konveksiId) ?? null;
-  const daysNeeded =
-    selectedKonveksi?.capacity_per_day && totalQty > 0 ? Math.ceil(totalQty / selectedKonveksi.capacity_per_day) : null;
 
   function updateQty(skuId: string, qty: string) {
     setLines((ls) => ls.map((l) => (l.skuId === skuId ? { ...l, qty } : l)));
@@ -128,7 +121,7 @@ export function BatchModal({
     toast.success(
       status === "draft"
         ? `${res.data.batch_no} disimpan sebagai draft`
-        : `${res.data.batch_no} dikirim ke ${selectedKonveksi?.name ?? "konveksi"} · ${fmtInt(totalQty)} pcs`,
+        : `${res.data.batch_no} dikirim ke ${konveksi?.find((k) => k.id === konveksiId)?.name ?? "konveksi"} · ${fmtInt(totalQty)} pcs`,
     );
     onCreated?.();
     onOpenChange(false);
@@ -163,9 +156,6 @@ export function BatchModal({
         <InfoBanner head="Ringkasan Batch">
           <strong>{fmtInt(lines.length)} SKU</strong> terpilih · Total <strong>{fmtInt(totalQty)} pcs</strong> · Estimasi
           selesai <strong>{fmtDate(estDone)}</strong>
-          {daysNeeded !== null && (
-            <span className="text-grey-1"> · ±{fmtInt(daysNeeded)} hari kerja di {selectedKonveksi?.name}</span>
-          )}
         </InfoBanner>
 
         <div className="grid grid-cols-3 gap-4">
@@ -312,22 +302,15 @@ function NewKonveksiModal({
   onCreated: (k: Konveksi) => void;
 }) {
   const [name, setName] = useState(initialName);
-  const [capacity, setCapacity] = useState("");
   const [saving, setSaving] = useState(false);
-  const capNum = capacity === "" ? null : Number(capacity);
-  const capInvalid = capNum !== null && (!Number.isInteger(capNum) || capNum <= 0);
 
   async function save() {
     if (!name.trim()) {
       toast.error("Nama konveksi wajib diisi");
       return;
     }
-    if (capInvalid) {
-      toast.error("Kapasitas harus bilangan bulat lebih dari 0");
-      return;
-    }
     setSaving(true);
-    const res = await createKonveksi({ name, capacity_per_day: capNum });
+    const res = await createKonveksi({ name, capacity_per_day: null });
     setSaving(false);
     if (!res.ok) {
       toast.error(`Gagal menambah konveksi: ${res.error}`);
@@ -352,7 +335,7 @@ function NewKonveksiModal({
         </>
       }
     >
-      <div className="mb-4">
+      <div>
         <label className="form-label">Nama Konveksi</label>
         <input
           autoFocus
@@ -360,18 +343,6 @@ function NewKonveksiModal({
           value={name}
           onChange={(e) => setName(e.target.value)}
           placeholder="Mis. Konveksi Sejahtera"
-        />
-      </div>
-      <div>
-        <label className="form-label">Kapasitas per Hari (pcs, opsional)</label>
-        <input
-          type="number"
-          min={1}
-          inputMode="numeric"
-          className={cn("form-input", capInvalid && "error")}
-          value={capacity}
-          onChange={(e) => setCapacity(e.target.value)}
-          placeholder="60"
           onKeyDown={(e) => {
             if (e.key === "Enter") save();
           }}

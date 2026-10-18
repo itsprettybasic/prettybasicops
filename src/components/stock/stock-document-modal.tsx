@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Upload, X } from "lucide-react";
+import { Upload, Plus, X } from "lucide-react";
 import { toast } from "sonner";
 import { Modal } from "@/components/ui/modal";
 import { Button } from "@/components/ui/button";
@@ -259,14 +259,9 @@ export function StockDocumentModal({
           />
         </div>
 
-        <div className="mt-5 mb-2 flex items-end justify-between">
-          <div>
-            <div className="text-[11px] font-bold tracking-[0.06em] text-grey-1 uppercase">SKU dalam Catatan</div>
-            <div className="mt-0.5 text-xs text-grey-1">Ketik nama, warna, atau kode SKU · Enter di kolom Qty untuk baris baru</div>
-          </div>
-          <Button size="sm" onClick={addLine}>
-            + Tambah SKU
-          </Button>
+        <div className="mt-5 mb-2">
+          <div className="text-[11px] font-bold tracking-[0.06em] text-grey-1 uppercase">SKU dalam Catatan</div>
+          <div className="mt-0.5 text-xs text-grey-1">Ketik nama, warna, atau kode SKU · Enter di kolom Qty untuk baris baru</div>
         </div>
 
         <table className="sku-row-table">
@@ -337,6 +332,18 @@ export function StockDocumentModal({
                 </tr>
               );
             })}
+            <tr>
+              <td colSpan={4} className="!py-2">
+                <button
+                  type="button"
+                  onClick={addLine}
+                  className="flex w-full cursor-pointer items-center justify-center gap-1.5 rounded-lg border border-dashed border-grey-3 py-2 text-[12.5px] font-semibold text-grey-1 transition-colors hover:border-primary-2 hover:bg-primary-tint hover:text-primary-2"
+                >
+                  <Plus className="h-3.5 w-3.5" />
+                  Tambah baris SKU
+                </button>
+              </td>
+            </tr>
           </tbody>
           <tfoot>
             <tr>

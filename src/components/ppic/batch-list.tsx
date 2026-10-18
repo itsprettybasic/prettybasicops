@@ -229,9 +229,6 @@ export function BatchList({ batches, today }: { batches: BatchSummary[]; today: 
                   </td>
                   <td>
                     <div className="font-medium text-ink-2">{b.konveksi_name}</div>
-                    {b.konveksi_capacity && (
-                      <div className="text-[11.5px] text-grey-1">{fmtInt(b.konveksi_capacity)} pcs/hari</div>
-                    )}
                   </td>
                   <td className="text-ink-3">{fmtDate(b.sent_date)}</td>
                   <td className={cn("text-ink-3", tone === "neg" && "font-semibold text-neg", tone === "warn" && "font-semibold text-warn")}>

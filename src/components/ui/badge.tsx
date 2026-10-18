@@ -31,9 +31,9 @@ export function StatusBadge({ status }: { status: PpicStatus }) {
 }
 
 const RANK_STYLE: Record<RankClass, string> = {
-  A: "bg-primary-tint text-primary ring-primary-soft",
-  B: "bg-white text-ink-3 ring-line",
-  C: "bg-white text-grey-2 ring-line-2",
+  A: "text-pos",
+  B: "text-yellow",
+  C: "text-grey-2",
 };
 
 const RANK_TITLE: Record<RankClass, string> = {
@@ -51,7 +51,7 @@ export function RankBadge({ rank, overridden }: { rank: RankClass; overridden?: 
     >
       <span
         className={cn(
-          "inline-flex h-5 min-w-5 items-center justify-center rounded-[5px] px-1 text-[11px] font-bold ring-1 ring-inset",
+          "text-[13.5px] leading-none font-extrabold",
           RANK_STYLE[rank],
         )}
       >

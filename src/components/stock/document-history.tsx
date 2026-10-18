@@ -29,9 +29,9 @@ import type { DocumentHistoryData, DocumentSummary } from "@/lib/data/documents"
 const COLS = 7;
 
 export function SourceBadge({ source }: { source: string }) {
-  const label = source === "excel" ? "Excel" : source === "seed" ? "Import awal" : "Manual";
+  const label = source === "excel" ? "Excel" : source === "seed" ? "Import awal" : source === "opname" ? "Opname" : "Manual";
   return (
-    <Badge tone={source === "excel" ? "info" : "grey"} className="px-[7px] py-[2px] text-[10px]">
+    <Badge tone={source === "excel" ? "info" : source === "opname" ? "purple" : "grey"} className="px-[7px] py-[2px] text-[10px]">
       {label}
     </Badge>
   );
