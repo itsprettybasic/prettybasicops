@@ -100,7 +100,7 @@ export function SkuDetailModal({
         </span>
       }
     >
-      <div className="my-[18px] grid grid-cols-3 gap-3">
+      <div className="my-[18px] grid grid-cols-2 gap-3 sm:grid-cols-3">
         <Kv label="Stock Sekarang" value={fmtInt(row.stock)} unit="pcs" tone={stockTone} />
         <Kv label="Min Stock" value={fmtInt(row.minStock)} unit="pcs" />
         <Kv label="Max Stock" value={fmtInt(row.maxStock)} unit="pcs" />
@@ -109,7 +109,7 @@ export function SkuDetailModal({
         <Kv label="Saran Qty" value={fmtInt(row.suggestion)} unit="pcs" tone="blue" />
       </div>
 
-      <div className="mb-4 flex items-center justify-between gap-4 rounded-[10px] border border-line px-4 py-3 text-[12.5px] text-ink-3">
+      <div className="mb-4 flex flex-col items-start justify-between gap-3 rounded-[10px] border border-line px-4 py-3 text-[12.5px] text-ink-3 sm:flex-row sm:items-center sm:gap-4">
         <div className="leading-relaxed">
           <div>
             Penjualan H-3 / H-2 / H-1 / Bulan berjalan:{" "}

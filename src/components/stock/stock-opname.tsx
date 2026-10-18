@@ -524,18 +524,18 @@ export function StockOpname({ lastOpname }: { lastOpname: LastOpname | null }) {
         </table>
       </Panel>
 
-      <div className="sticky bottom-4 z-10 flex items-end gap-3 rounded-[14px] border border-line bg-white px-[22px] py-4 shadow-[0_8px_24px_rgba(15,23,42,0.08)]">
-        <div>
+      <div className="flex flex-wrap items-end gap-3 rounded-[14px] border border-line bg-white px-4 py-4 shadow-[0_8px_24px_rgba(15,23,42,0.08)] sm:sticky sm:bottom-4 sm:z-10 sm:flex-nowrap sm:px-[22px]">
+        <div className="w-full sm:w-auto">
           <label className="form-label">Tanggal Opname</label>
           <input
             type="date"
-            className="date-input"
+            className="date-input w-full sm:w-auto"
             value={docDate}
             max={today}
             onChange={(e) => setDocDate(e.target.value)}
           />
         </div>
-        <div className="flex-1">
+        <div className="w-full sm:w-auto sm:flex-1">
           <label className="form-label">Catatan (opsional)</label>
           <input
             className="form-input"
@@ -549,7 +549,7 @@ export function StockOpname({ lastOpname }: { lastOpname: LastOpname | null }) {
             Reset
           </Button>
         )}
-        <Button variant="primary" onClick={askSave} className="mb-px">
+        <Button variant="primary" onClick={askSave} className="mb-px flex-1 sm:flex-none">
           Simpan Opname{stats.counted ? ` (${fmtInt(stats.counted)} SKU)` : ""}
         </Button>
       </div>

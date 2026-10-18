@@ -158,7 +158,7 @@ export function BatchModal({
           selesai <strong>{fmtDate(estDone)}</strong>
         </InfoBanner>
 
-        <div className="grid grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <div className="mb-4">
             <label className="form-label">No Batch</label>
             <input
@@ -193,7 +193,7 @@ export function BatchModal({
 
         <div className="mt-1 mb-2 flex items-end justify-between gap-4">
           <div className="text-[11px] font-bold tracking-[0.06em] text-grey-1 uppercase">SKU dalam Batch</div>
-          <div className="w-[340px]">
+          <div className="w-full sm:w-[340px]">
             <Combobox
               size="sm"
               options={addOptions}

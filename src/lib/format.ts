@@ -10,7 +10,7 @@ const decFormat = new Intl.NumberFormat("id-ID", { maximumFractionDigits: 1 });
 /** Angka bulat format Indonesia: 1.047 */
 export function fmtInt(n: number | null | undefined): string {
   if (n === null || n === undefined || Number.isNaN(n)) return "—";
-  return intFormat.format(Math.round(n));
+  return intFormat.format(Math.round(n) || 0); // || 0 → hindari tampilan "-0"
 }
 
 /** Angka desimal (maks 1 digit) format Indonesia: 128,5 */

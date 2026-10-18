@@ -144,3 +144,11 @@ describe("Status lain", () => {
     expect(r.minStock).toBe(Math.ceil(2.27 * 28));
   });
 });
+
+describe("Forecast 0", () => {
+  it("Min/Max 0, bukan -0", () => {
+    const r = computePpic(sku({ monthlySales: { "2026-07": 0, "2026-08": 0, "2026-09": 0 }, stock: 5 }), P, TODAY);
+    expect(Object.is(r.minStock, 0)).toBe(true);
+    expect(Object.is(r.maxStock, 0)).toBe(true);
+  });
+});

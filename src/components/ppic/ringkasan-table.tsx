@@ -180,7 +180,7 @@ export function RingkasanTable() {
         >
           {allExpanded ? "Tutup semua" : "Buka semua varian"}
         </Button>
-        <div className="ml-auto text-[12px] text-grey-1">Klik produk untuk melihat SKU-nya</div>
+        <div className="hidden text-[12px] text-grey-1 sm:ml-auto sm:block">Klik produk untuk melihat SKU-nya</div>
       </Toolbar>
 
       <table className="data-table">

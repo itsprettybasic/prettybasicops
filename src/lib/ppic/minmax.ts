@@ -4,9 +4,10 @@ import type { Rounding } from "./types";
 const EPSILON = 1e-9;
 
 export function applyRounding(x: number, rounding: Rounding): number {
-  if (rounding === "floor") return Math.floor(x + EPSILON);
-  if (rounding === "round") return Math.round(x);
-  return Math.ceil(x - EPSILON);
+  // `|| 0` mengubah -0 (mis. Math.ceil(0 - EPSILON)) jadi 0
+  if (rounding === "floor") return Math.floor(x + EPSILON) || 0;
+  if (rounding === "round") return Math.round(x) || 0;
+  return Math.ceil(x - EPSILON) || 0;
 }
 
 export function roundUpToMultiple(x: number, multiple: number): number {

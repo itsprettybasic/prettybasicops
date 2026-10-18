@@ -193,7 +193,7 @@ export function SkuFormModal({
           )}
         </div>
 
-        <div className="mb-4 grid grid-cols-2 gap-4">
+        <div className="mb-4 grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
             <label className="form-label">Warna</label>
             <input
@@ -255,7 +255,7 @@ export function SkuFormModal({
           )}
         </div>
 
-        <div className="mb-4 grid grid-cols-2 gap-4">
+        <div className="mb-4 grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
             <label className="form-label">Tanggal Launch</label>
             <input

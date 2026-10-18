@@ -33,12 +33,12 @@ export function Modal({
     <Dialog.Root open={open} onOpenChange={onOpenChange}>
       <Dialog.Portal>
         <Dialog.Overlay className="fixed inset-0 z-[100] bg-[rgba(15,23,42,0.5)]" />
-        <div className="pointer-events-none fixed inset-0 z-[100] flex items-center justify-center p-6">
+        <div className="pointer-events-none fixed inset-0 z-[100] flex items-center justify-center p-3 sm:p-6">
           <Dialog.Content
             aria-describedby={undefined}
             onOpenAutoFocus={(e) => e.preventDefault()}
             className={cn(
-              "pointer-events-auto max-h-[92vh] w-full overflow-y-auto rounded-2xl bg-white px-8 py-7 shadow-[0_20px_60px_rgba(15,23,42,0.15)] focus:outline-none",
+              "pointer-events-auto max-h-[92vh] w-full overflow-y-auto rounded-2xl bg-white px-4 py-5 sm:px-8 sm:py-7 shadow-[0_20px_60px_rgba(15,23,42,0.15)] focus:outline-none",
               size === "sm" ? "max-w-[480px]" : wide ? "max-w-[980px]" : "max-w-[820px]",
             )}
           >
@@ -59,9 +59,9 @@ export function Modal({
             </div>
             {children}
             {(footer || footerLeft) && (
-              <div className="mt-6 flex items-center justify-between gap-2.5 border-t border-line pt-[18px]">
-                <div className="flex gap-2.5">{footerLeft}</div>
-                <div className="flex gap-2.5">{footer}</div>
+              <div className="mt-6 flex flex-wrap items-center justify-between gap-2.5 border-t border-line pt-[18px]">
+                <div className="flex flex-wrap gap-2.5">{footerLeft}</div>
+                <div className="ml-auto flex flex-wrap justify-end gap-2.5">{footer}</div>
               </div>
             )}
           </Dialog.Content>

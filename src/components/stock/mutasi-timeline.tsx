@@ -301,10 +301,10 @@ export function MutasiTimeline({
               {k === "all" ? "Semua" : k === "in" ? "Masuk" : "Keluar"}
             </FilterChip>
           ))}
-          <div className="ml-auto flex items-center gap-2">
+          <div className="flex w-full flex-wrap items-center gap-2 sm:ml-auto sm:w-auto sm:flex-nowrap">
             <input
               type="date"
-              className="date-input"
+              className="date-input min-w-0 flex-1 sm:flex-none"
               value={from}
               max={to}
               onChange={(e) => setRange(e.target.value, to)}
@@ -313,14 +313,14 @@ export function MutasiTimeline({
             <span className="text-[12px] text-grey-1">s/d</span>
             <input
               type="date"
-              className="date-input"
+              className="date-input min-w-0 flex-1 sm:flex-none"
               value={to}
               min={from}
               max={today}
               onChange={(e) => setRange(from, e.target.value)}
               aria-label="Sampai tanggal"
             />
-            <div className="flex w-[280px] items-center gap-1">
+            <div className="flex w-full items-center gap-1 sm:w-[280px]">
               <Combobox
                 className="flex-1"
                 options={skuOptions}
@@ -351,7 +351,7 @@ export function MutasiTimeline({
         {skuId ? (
           <>
             {movements !== null && (
-              <div className="mb-3 grid grid-cols-4 gap-3">
+              <div className="mb-3 grid grid-cols-2 md:grid-cols-4 gap-3">
                 {[
                   { label: "Saldo awal", value: fmtInt(card.opening), cls: "text-ink" },
                   { label: "Masuk", value: fmtSigned(card.qtyIn), cls: "text-pos" },

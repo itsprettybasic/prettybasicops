@@ -407,7 +407,7 @@ export function PpicTable({ rows, today }: { rows: PpicRow[]; today: string }) {
               {chip.label}
             </FilterChip>
           ))}
-          <div className="ml-auto flex gap-2">
+          <div className="flex w-full flex-wrap gap-2 sm:ml-auto sm:w-auto">
             <select
               className="select-input"
               value={rank}

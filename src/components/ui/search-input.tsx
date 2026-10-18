@@ -10,7 +10,7 @@ export function SearchInput({
   placeholder?: string;
 }) {
   return (
-    <div className="relative w-[280px]">
+    <div className="relative w-full sm:w-[280px]">
       <Search className="pointer-events-none absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-grey-2" strokeWidth={2} />
       <input
         value={value}

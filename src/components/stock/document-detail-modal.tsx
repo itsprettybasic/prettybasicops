@@ -95,7 +95,7 @@ export function DocumentDetailModal({
           </InfoBanner>
         ) : !doc ? (
           <div className="space-y-3">
-            <div className="grid grid-cols-4 gap-4">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               {Array.from({ length: 4 }).map((_, i) => (
                 <div key={i} className="skeleton h-9" />
               ))}
@@ -112,7 +112,7 @@ export function DocumentDetailModal({
               </InfoBanner>
             )}
 
-            <div className="mb-5 grid grid-cols-4 gap-x-6 gap-y-4 rounded-[10px] border border-line bg-bg px-5 py-4">
+            <div className="mb-5 grid grid-cols-2 md:grid-cols-4 gap-x-6 gap-y-4 rounded-[10px] border border-line bg-bg px-5 py-4">
               <Field label="Tipe">
                 <span className="inline-flex items-center gap-2">
                   <Badge tone={voided ? "grey" : TYPE_TONE[doc.type]}>{TYPE_LABEL[doc.type]}</Badge>

@@ -211,7 +211,7 @@ export function BatchDetailModal({
       >
         {!batch ? (
           <div className="space-y-3">
-            <div className="grid grid-cols-4 gap-3">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
               {Array.from({ length: 4 }).map((_, i) => (
                 <div key={i} className="skeleton h-[62px]" />
               ))}
@@ -220,7 +220,7 @@ export function BatchDetailModal({
           </div>
         ) : (
           <>
-            <div className="mb-4 grid grid-cols-4 gap-3">
+            <div className="mb-4 grid grid-cols-2 md:grid-cols-4 gap-3">
               <Info label="Tanggal Kirim">{fmtDate(batch.sent_date)}</Info>
               <Info label="Est. Selesai">
                 <span className={cn(overdue && "text-neg")}>{fmtDate(batch.est_done_date)}</span>

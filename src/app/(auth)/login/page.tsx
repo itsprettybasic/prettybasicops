@@ -31,8 +31,8 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-bg">
-      <form onSubmit={submit} className="w-[400px] rounded-2xl border border-line bg-white p-8">
+    <div className="flex min-h-screen items-center justify-center bg-bg px-4">
+      <form onSubmit={submit} className="w-full max-w-[400px] rounded-2xl border border-line bg-white p-8">
         <div className="mb-7 flex flex-col items-center text-center">
           <Image src="/logo.png" alt="Pretty Basic" width={136} height={72} className="h-[72px] w-auto" priority />
           <div className="mt-2.5 text-[12px] text-grey-1">PPIC System</div>

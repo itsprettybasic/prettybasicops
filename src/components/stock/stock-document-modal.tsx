@@ -205,7 +205,7 @@ export function StockDocumentModal({
           </>
         }
       >
-        <div className="grid grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <div className="mb-4">
             <label className="form-label">Tipe {isIn ? "Barang Masuk" : "Barang Keluar"}</label>
             <Combobox

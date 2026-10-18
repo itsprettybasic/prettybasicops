@@ -46,7 +46,39 @@ body {
   font-size: 14px;
   line-height: 1.5;
   -webkit-font-smoothing: antialiased;
-  min-width: 1280px;
+}
+
+/* Layar kecil (HP/tablet): tabel bisa digeser ke samping, isi sel tidak dipatah-patah */
+@media (max-width: 1023px) {
+  .data-table,
+  .sku-row-table {
+    display: block;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  .data-table th,
+  .data-table td,
+  .sku-row-table th,
+  .sku-row-table td {
+    white-space: nowrap;
+  }
+  .sku-row-table tbody td:first-child {
+    min-width: 230px;
+  }
+  .select-input {
+    max-width: 100%;
+  }
+  .data-table td[colspan] {
+    text-align: left;
+  }
+}
+/* iPhone otomatis zoom kalau font input < 16px — cegah di HP */
+@media (max-width: 767px) {
+  input,
+  select,
+  textarea {
+    font-size: 16px !important;
+  }
 }
 
 .num {

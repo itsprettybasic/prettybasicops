@@ -223,10 +223,10 @@ export function DocumentHistory({ data }: { data: DocumentHistoryData }) {
               {TYPE_LABEL[t]}
             </FilterChip>
           ))}
-          <div className="ml-auto flex items-center gap-2">
+          <div className="flex w-full flex-wrap items-center gap-2 sm:ml-auto sm:w-auto sm:flex-nowrap">
             <input
               type="date"
-              className="date-input"
+              className="date-input min-w-0 flex-1 sm:flex-none"
               value={from}
               max={to || undefined}
               onChange={(e) => applyRange(e.target.value, to)}
@@ -235,7 +235,7 @@ export function DocumentHistory({ data }: { data: DocumentHistoryData }) {
             <span className="text-[12px] text-grey-2">s/d</span>
             <input
               type="date"
-              className="date-input"
+              className="date-input min-w-0 flex-1 sm:flex-none"
               value={to}
               min={from || undefined}
               onChange={(e) => applyRange(from, e.target.value)}

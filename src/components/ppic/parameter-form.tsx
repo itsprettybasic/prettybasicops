@@ -173,7 +173,7 @@ export function ParameterForm({ initial, updatedAt }: { initial: PpicParams; upd
   }
 
   return (
-    <div className="grid grid-cols-2 items-start gap-4">
+    <div className="grid grid-cols-1 sm:grid-cols-2 items-start gap-4">
       <Panel title="Rumus Min & Max Stock" sub={`Ubah angka → semua Min/Max otomatis update · ${ROUNDING_SUB[rounding]}`}>
         <InfoBanner head="Rumus Aktif">
           <div>
@@ -187,7 +187,7 @@ export function ParameterForm({ initial, updatedAt }: { initial: PpicParams; upd
           </div>
         </InfoBanner>
 
-        <div className="mb-4 grid grid-cols-2 gap-4">
+        <div className="mb-4 grid grid-cols-1 sm:grid-cols-2 gap-4">
           <Field
             label="Min Stock = cover berapa hari?"
             value={values.min_cover_days}
@@ -205,7 +205,7 @@ export function ParameterForm({ initial, updatedAt }: { initial: PpicParams; upd
             hint="Biasanya = Lead Time + Siklus + Safety"
           />
         </div>
-        <div className="mb-4 grid grid-cols-2 gap-4">
+        <div className="mb-4 grid grid-cols-1 sm:grid-cols-2 gap-4">
           <Field
             label="Lead Time Produksi"
             value={values.lead_time_days}
@@ -236,7 +236,7 @@ export function ParameterForm({ initial, updatedAt }: { initial: PpicParams; upd
       </Panel>
 
       <Panel title="Bobot Forecast" sub="Total harus 100% · Bulan terakhir = bobot paling besar (paling akurat)">
-        <div className="grid grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <Field
             label="Bobot H-3 Bulan"
             value={values.weight_h3}
@@ -268,7 +268,7 @@ export function ParameterForm({ initial, updatedAt }: { initial: PpicParams; upd
         <SumLine total={parsed.w3} label="Total bobot 3 bulan" />
 
         <div className="mb-1.5 text-[12px] font-bold text-ink-3">Produk umur 2 bulan</div>
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <Field
             label="Bobot H-2 Bulan"
             value={values.weight2_h2}
@@ -302,7 +302,7 @@ export function ParameterForm({ initial, updatedAt }: { initial: PpicParams; upd
           <strong>Umur &lt; {minDaysText}:</strong> Belum ada forecast, tunggu {minDaysText} dulu
         </InfoBanner>
 
-        <div className="mb-4 grid grid-cols-2 gap-4">
+        <div className="mb-4 grid grid-cols-1 sm:grid-cols-2 gap-4">
           <Field
             label="Batas Overstock (× Max)"
             value={values.overstock_multiplier}
@@ -322,7 +322,7 @@ export function ParameterForm({ initial, updatedAt }: { initial: PpicParams; upd
             hint="pcs/bulan · di bawah ini = OVERSTOCK / STOP"
           />
         </div>
-        <div className="mb-4 grid grid-cols-2 gap-4">
+        <div className="mb-4 grid grid-cols-1 sm:grid-cols-2 gap-4">
           <Field
             label="Hari tanpa Penjualan → DEADSTOCK"
             value={values.deadstock_days}
@@ -339,7 +339,7 @@ export function ParameterForm({ initial, updatedAt }: { initial: PpicParams; upd
             hint="Di bawah ini status BARU"
           />
         </div>
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <Field
             label="Batas Ranking A"
             value={values.rank_a_pct}

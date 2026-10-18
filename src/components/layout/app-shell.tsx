@@ -15,6 +15,7 @@ import {
   KeyRound,
   LineChart,
   LogOut,
+  Menu,
   Settings,
   Table,
   Tags,
@@ -73,6 +74,19 @@ export function AppShell({
 }) {
   const pathname = usePathname();
   const [collapsed, setCollapsed] = useState(false);
+  // Menu samping di HP (layar < lg) — terbuka sebagai laci
+  const [mobileOpen, setMobileOpen] = useState(false);
+
+  useEffect(() => {
+    setMobileOpen(false);
+  }, [pathname]);
+
+  useEffect(() => {
+    if (!mobileOpen) return;
+    const onKey = (e: KeyboardEvent) => e.key === "Escape" && setMobileOpen(false);
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [mobileOpen]);
 
   useEffect(() => {
     try {
@@ -93,21 +107,50 @@ export function AppShell({
     });
   }
 
+  // Di HP sidebar selalu lebar penuh; mode ciut hanya untuk desktop
+  const mini = collapsed && !mobileOpen;
+
   return (
     <div className="flex min-h-screen">
+      <header className="fixed inset-x-0 top-0 z-30 flex h-14 items-center gap-3 border-b border-line bg-white px-4 lg:hidden">
+        <button
+          type="button"
+          onClick={() => setMobileOpen(true)}
+          aria-label="Buka menu"
+          className="-ml-1.5 flex h-9 w-9 cursor-pointer items-center justify-center rounded-lg text-ink-3 hover:bg-bg"
+        >
+          <Menu className="h-5 w-5" />
+        </button>
+        <Image src="/logo.png" alt="Pretty Basic" width={57} height={30} className="h-[30px] w-auto" priority />
+        {alertCount > 0 && (
+          <Link
+            href="/ppic"
+            className="num ml-auto rounded-full bg-neg px-2 py-0.5 text-[11px] font-bold text-white"
+            title="SKU perlu produksi"
+          >
+            {alertCount}
+          </Link>
+        )}
+      </header>
+
+      {mobileOpen && (
+        <div className="fixed inset-0 z-40 bg-[rgba(15,23,42,0.4)] lg:hidden" onClick={() => setMobileOpen(false)} />
+      )}
+
       <aside
         className={cn(
-          "fixed z-20 flex h-screen flex-col overflow-x-hidden overflow-y-auto border-r border-line bg-white py-6 transition-[width] duration-[220ms] ease-in-out",
-          collapsed ? "w-[68px]" : "w-[240px]",
+          "fixed z-50 flex h-dvh flex-col overflow-x-hidden overflow-y-auto border-r border-line bg-white py-6 transition-[width,translate] duration-[220ms] ease-in-out lg:z-20 lg:translate-x-0",
+          mini ? "w-[68px]" : "w-[240px]",
+          mobileOpen ? "translate-x-0" : "-translate-x-full",
         )}
       >
         <div
           className={cn(
             "flex items-center gap-3 pb-6",
-            collapsed ? "justify-center px-3.5" : "px-6",
+            mini ? "justify-center px-3.5" : "px-6",
           )}
         >
-          {collapsed ? (
+          {mini ? (
             <Image src="/logo-mark.png" alt="Pretty Basic" width={40} height={40} className="h-10 w-10 shrink-0 rounded-[10px]" priority />
           ) : (
             <div>
@@ -122,7 +165,7 @@ export function AppShell({
             <div
               className={cn(
                 "text-[10.5px] font-semibold tracking-[0.14em] text-grey-2 uppercase",
-                collapsed ? "invisible h-0.5 px-0 pt-3.5" : "px-6 pt-5 pb-2.5",
+                mini ? "invisible h-0.5 px-0 pt-3.5" : "px-6 pt-5 pb-2.5",
               )}
             >
               {group.section}
@@ -138,7 +181,7 @@ export function AppShell({
                   data-label={item.label}
                   className={cn(
                     "group relative flex items-center gap-3 border-l-[3px] text-[13.5px] font-medium transition-all duration-150",
-                    collapsed ? "justify-center py-[11px]" : "px-6 py-2.5",
+                    mini ? "justify-center py-[11px]" : "px-6 py-2.5",
                     active
                       ? "border-l-primary bg-primary-tint font-semibold text-primary"
                       : "border-l-transparent text-ink-3 hover:bg-bg hover:text-ink",
@@ -148,16 +191,16 @@ export function AppShell({
                     className="h-[18px] w-[18px] shrink-0"
                     strokeWidth={1.8}
                   />
-                  {!collapsed && <span>{item.label}</span>}
-                  {!collapsed && item.badge && alertCount > 0 && (
+                  {!mini && <span>{item.label}</span>}
+                  {!mini && item.badge && alertCount > 0 && (
                     <span className="num ml-auto rounded-full bg-neg px-[7px] py-px text-[10.5px] font-bold text-white">
                       {alertCount}
                     </span>
                   )}
-                  {collapsed && item.badge && alertCount > 0 && (
+                  {mini && item.badge && alertCount > 0 && (
                     <span className="absolute top-1.5 right-3.5 h-2 w-2 rounded-full bg-neg" />
                   )}
-                  {collapsed && (
+                  {mini && (
                     <span className="pointer-events-none absolute top-1/2 left-[60px] z-[100] hidden -translate-y-1/2 rounded-md bg-ink px-3 py-1.5 text-xs font-medium whitespace-nowrap text-white group-hover:block">
                       {item.label}
                     </span>
@@ -171,13 +214,13 @@ export function AppShell({
         <div
           className={cn(
             "mt-auto flex items-center gap-3 border-t border-line py-4",
-            collapsed ? "flex-col justify-center px-3.5" : "px-6",
+            mini ? "flex-col justify-center px-3.5" : "px-6",
           )}
         >
           <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary text-[13px] font-bold text-white">
             {userName.charAt(0).toUpperCase()}
           </div>
-          {!collapsed && (
+          {!mini && (
             <div className="min-w-0 flex-1">
               <div className="truncate text-[13px] font-semibold text-ink">
                 {userName}
@@ -185,7 +228,7 @@ export function AppShell({
               <div className="mt-px text-[11px] text-grey-1">{userRole}</div>
             </div>
           )}
-          <div className={cn("flex", collapsed ? "flex-col gap-1" : "gap-0.5")}>
+          <div className={cn("flex", mini ? "flex-col gap-1" : "gap-0.5")}>
             <Link
               href="/akun/password"
               title="Ganti password"
@@ -211,7 +254,7 @@ export function AppShell({
         onClick={toggle}
         aria-label={collapsed ? "Buka sidebar" : "Tutup sidebar"}
         className={cn(
-          "fixed top-9 z-30 flex h-7 w-7 cursor-pointer items-center justify-center rounded-full border border-line bg-white text-grey-1 shadow-[0_1px_3px_rgba(15,23,42,0.08)] transition-[left] duration-[220ms] ease-in-out hover:border-grey-3 hover:text-ink",
+          "fixed top-9 z-30 hidden h-7 w-7 cursor-pointer items-center justify-center rounded-full border border-line bg-white text-grey-1 shadow-[0_1px_3px_rgba(15,23,42,0.08)] transition-[left] duration-[220ms] ease-in-out hover:border-grey-3 hover:text-ink lg:flex",
           collapsed ? "left-[52px]" : "left-[224px]",
         )}
       >
@@ -226,8 +269,8 @@ export function AppShell({
 
       <main
         className={cn(
-          "min-h-screen min-w-0 flex-1 px-9 py-7 transition-[margin-left] duration-[220ms] ease-in-out",
-          collapsed ? "ml-[68px]" : "ml-[240px]",
+          "min-h-screen min-w-0 flex-1 px-4 pt-[76px] pb-7 transition-[margin-left] duration-[220ms] ease-in-out sm:px-6 lg:px-9 lg:pt-7",
+          collapsed ? "lg:ml-[68px]" : "lg:ml-[240px]",
         )}
       >
         {children}

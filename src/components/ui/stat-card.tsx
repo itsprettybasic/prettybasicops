@@ -21,8 +21,8 @@ const VALUE: Partial<Record<StatTone, string>> = {
 };
 
 export function StatGrid({ cols, children }: { cols: 4 | 5 | 6; children: React.ReactNode }) {
-  const grid = { 4: "grid-cols-4", 5: "grid-cols-5", 6: "grid-cols-6" }[cols];
-  return <div className={cn("mb-5 grid gap-4", grid)}>{children}</div>;
+  const grid = { 4: "lg:grid-cols-4", 5: "lg:grid-cols-5", 6: "lg:grid-cols-6" }[cols];
+  return <div className={cn("mb-5 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:gap-4", grid)}>{children}</div>;
 }
 
 export function StatCard({
@@ -53,7 +53,7 @@ export function StatCard({
     <Comp
       onClick={onClick}
       className={cn(
-        "rounded-[14px] border border-line bg-white px-5 py-[18px] text-left",
+        "min-w-0 rounded-[14px] border border-line bg-white px-4 py-4 text-left lg:px-5 lg:py-[18px]",
         onClick && "cursor-pointer transition-colors hover:border-grey-3",
         active && "border-primary ring-1 ring-primary",
       )}
@@ -65,7 +65,7 @@ export function StatCard({
       {loading ? (
         <div className="skeleton h-7 w-20" />
       ) : (
-        <div className={cn("num text-[28px] leading-none font-extrabold tracking-[-0.03em] text-ink", valueTone && VALUE[valueTone])}>
+        <div className={cn("num text-[22px] leading-none sm:text-[28px] font-extrabold tracking-[-0.03em] text-ink", valueTone && VALUE[valueTone])}>
           {value}
           {unit && <span className="ml-[3px] text-[13px] font-semibold tracking-normal text-grey-1">{unit}</span>}
         </div>
