@@ -116,7 +116,9 @@ export function DocumentDetailModal({
               <Field label="Tipe">
                 <span className="inline-flex items-center gap-2">
                   <Badge tone={voided ? "grey" : TYPE_TONE[doc.type]}>{TYPE_LABEL[doc.type]}</Badge>
-                  <span className="truncate text-[12px] text-grey-1">{TYPE_OPTION_LABEL[doc.type]}</span>
+                  {TYPE_OPTION_LABEL[doc.type] !== TYPE_LABEL[doc.type] && (
+                    <span className="truncate text-[12px] text-grey-1">{TYPE_OPTION_LABEL[doc.type]}</span>
+                  )}
                 </span>
               </Field>
               <Field label={isIn ? "Ref Batch" : "Channel"}>

@@ -1,36 +1,67 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Pretty Basic — PPIC System
 
-## Getting Started
+Web operasional untuk stock, barang masuk/keluar, batch produksi, dan rekomendasi produksi (PPIC).
 
-First, run the development server:
+- **Online:** https://prettybasicops.vercel.app
+- **Stack:** Next.js 15 (App Router) · Supabase (Postgres + Auth) · Vercel · Tailwind v4
+- **Spec:** `docs/PRETTY_BASIC_PPIC_SPEC.md` · catatan desain: `docs/DESIGN-NOTES.md`
+
+## Halaman
+
+| Menu | Isi |
+|---|---|
+| Rekomendasi Produksi | Status PPIC per SKU (Habis/Produksi/Aman/…), ranking A/B/C, saran qty, buat batch |
+| Stock Live | Stock real-time per SKU, + Barang Masuk / – Barang Keluar |
+| Barang Masuk / Keluar | Riwayat catatan (1 catatan = banyak SKU), upload Excel, batalkan catatan |
+| Batch Produksi | Batch di konveksi, terima barang sebagian/penuh, export surat order |
+| Ringkasan Produk | Rekap per produk (semua warna & size) |
+| Riwayat Mutasi | Timeline semua pergerakan stock + kartu stock per SKU |
+| Master SKU | Tambah/edit SKU, upload Excel, nonaktifkan SKU |
+| Parameter PPIC | Min/Max cover days, lead time, bobot forecast, batas ranking |
+
+## Setup lokal
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+npm install
+cp .env.example .env.local   # isi URL + publishable key Supabase
+npm run dev                  # http://localhost:3000
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Env yang dibutuhkan (lihat `.env.example`):
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+| Nama | Keterangan |
+|---|---|
+| `NEXT_PUBLIC_SUPABASE_URL` | `https://<ref>.supabase.co` |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Publishable key (`sb_publishable_…`) |
+| `SEED_ADMIN_EMAIL` / `SEED_ADMIN_PASSWORD` / `SEED_ADMIN_NAME` | Hanya untuk script seed lokal |
+| `SUPABASE_SERVICE_ROLE_KEY` | Opsional, hanya lokal. **Jangan** pernah dipasang di Vercel/di-commit |
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Database
 
-## Learn More
+Skema lengkap ada di `supabase/migrations/0001_init.sql` (tabel, view, RLS, fungsi RPC).
+Jalankan sekali di Supabase → SQL Editor. Uji lokal tanpa Supabase: `npm run test:migration`.
 
-To learn more about Next.js, take a look at the following resources:
+## Script
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+| Perintah | Fungsi |
+|---|---|
+| `npm test` | Unit test rumus PPIC & parser Excel |
+| `npm run seed:demo` | Isi data contoh (8 produk, 58 SKU, ±4 bulan transaksi) |
+| `npm run seed:reset` | Hapus data contoh (butuh `ALLOW_RESET=true` + service role key) |
+| `npm run seed:admin` | Buat user admin (butuh service role key) |
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+Tanpa service role key, data contoh bisa dihapus dengan menjalankan `supabase/reset-demo.sql` di SQL Editor.
 
-## Deploy on Vercel
+## Deploy
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+Setiap push ke branch `main` di GitHub otomatis di-deploy Vercel. Env di Vercel cukup
+`NEXT_PUBLIC_SUPABASE_URL` dan `NEXT_PUBLIC_SUPABASE_ANON_KEY`.
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## Checklist sebelum dipakai sungguhan (go-live)
+
+1. Hapus data contoh: jalankan `supabase/reset-demo.sql` di SQL Editor.
+2. Masukkan SKU asli lewat **Master SKU → Upload Excel**.
+3. Catat stock awal lewat **Barang Masuk → Adjustment +** (bisa upload Excel).
+4. Ganti password admin: ikon kunci di kiri bawah sidebar.
+5. Tambah user staf: Supabase → Authentication → Users → Add user (centang Auto Confirm).
+   Pendaftaran publik sudah dimatikan, jadi hanya user yang dibuat admin yang bisa login.

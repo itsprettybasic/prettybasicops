@@ -26,7 +26,7 @@ import { fmtDate, fmtDec, fmtInt, fmtMonthYear, fmtSigned, fmtTime } from "@/lib
 import { cn } from "@/lib/cn";
 import type { DocumentHistoryData, DocumentSummary } from "@/lib/data/documents";
 
-const COLS = 8;
+const COLS = 7;
 
 export function SourceBadge({ source }: { source: string }) {
   const label = source === "excel" ? "Excel" : source === "seed" ? "Import awal" : "Manual";
@@ -273,7 +273,6 @@ export function DocumentHistory({ data }: { data: DocumentHistoryData }) {
               <th className="num">Total Qty</th>
               <th>Catatan</th>
               <th>Admin</th>
-              <th>Sumber</th>
             </tr>
           </thead>
           <tbody>
@@ -326,7 +325,7 @@ export function DocumentHistory({ data }: { data: DocumentHistoryData }) {
                         <span className="text-grey-2">—</span>
                       )}
                     </td>
-                    <td className="max-w-[300px]">
+                    <td className="max-w-[260px]">
                       <div className={cn("font-semibold", voided ? "text-grey-2" : "text-ink")}>{fmtInt(d.sku_count)} SKU</div>
                       <div className="truncate text-[11.5px] text-grey-1">
                         {shown.join(", ")}
@@ -338,14 +337,16 @@ export function DocumentHistory({ data }: { data: DocumentHistoryData }) {
                         {signed(d.total_qty)}
                       </strong>
                     </td>
-                    <td className="max-w-[220px]">
+                    <td className="max-w-[200px]">
                       <div className="truncate" title={d.note ?? undefined}>
                         {d.note || <span className="text-grey-2">—</span>}
                       </div>
                     </td>
-                    <td className="whitespace-nowrap">{d.created_by_name ?? "—"}</td>
-                    <td>
-                      <SourceBadge source={d.source} />
+                    <td className="whitespace-nowrap">
+                      <div className={voided ? "text-grey-2" : "text-ink-2"}>{d.created_by_name ?? "—"}</div>
+                      <div className="mt-0.5">
+                        <SourceBadge source={d.source} />
+                      </div>
                     </td>
                   </tr>
                 );

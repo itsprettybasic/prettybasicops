@@ -210,7 +210,7 @@ export function RingkasanTable() {
               <Fragment key={p.id}>
                 <tr className="clickable" onClick={() => toggle(p.id)} aria-expanded={open}>
                   <td>
-                    <span className="inline-flex items-center gap-1.5 font-semibold text-ink">
+                    <span className="inline-flex items-center gap-1.5 font-semibold whitespace-nowrap text-ink">
                       <ChevronRight
                         className={cn("h-3.5 w-3.5 shrink-0 text-grey-2 transition-transform", open && "rotate-90")}
                       />
