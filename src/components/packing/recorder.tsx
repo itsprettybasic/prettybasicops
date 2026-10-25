@@ -18,7 +18,7 @@ import {
   type ScanMemory,
   type ScanPhase,
 } from "@/lib/packing/scan-rules";
-import { startScanner, type Scanner } from "@/lib/packing/scanner";
+import { preloadScanner, startScanner, type Scanner } from "@/lib/packing/scanner";
 import { buildVideoPath, extFromMime, fmtBytes, fmtDuration, pickMimeType } from "@/lib/packing/media";
 import {
   addChunk,
@@ -455,6 +455,7 @@ export function PackRecorder({
       return;
     }
     const preset = QUALITY_PRESET[settings.quality];
+    preloadScanner();
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
         video: { facingMode: { ideal: "environment" }, width: { ideal: preset.width }, height: { ideal: preset.height } },

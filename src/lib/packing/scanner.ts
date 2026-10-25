@@ -34,8 +34,15 @@ async function nativeDetector(): Promise<Detector | null> {
   }
 }
 
+let zxingModule: Promise<typeof import("@zxing/library")> | null = null;
+
+/** Mulai unduh library scanner lebih awal (paralel dengan membuka kamera). */
+export function preloadScanner() {
+  if (typeof window !== "undefined" && !window.BarcodeDetector) zxingModule ??= import("@zxing/library");
+}
+
 async function zxingDetector(): Promise<Detector> {
-  const zx = await import("@zxing/library");
+  const zx = await (zxingModule ??= import("@zxing/library"));
   const hints = new Map();
   hints.set(zx.DecodeHintType.POSSIBLE_FORMATS, [zx.BarcodeFormat.CODE_128, zx.BarcodeFormat.QR_CODE, zx.BarcodeFormat.CODE_39]);
   hints.set(zx.DecodeHintType.TRY_HARDER, true);

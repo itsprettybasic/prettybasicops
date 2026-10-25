@@ -1,7 +1,6 @@
 import { redirect } from "next/navigation";
 import { AppShell } from "@/components/layout/app-shell";
 import { getCurrentUser } from "@/lib/data/profile";
-import { getPpicData } from "@/lib/data/ppic";
 import { signOut } from "@/app/actions/auth";
 import { Button } from "@/components/ui/button";
 
@@ -25,17 +24,9 @@ export default async function StaffLayout({ children }: { children: React.ReactN
     );
   }
 
-  let alertCount = 0;
-  if (profile.role === "admin") {
-    try {
-      alertCount = (await getPpicData()).rows.filter((r) => r.status === "HABIS" || r.status === "PRODUKSI").length;
-    } catch {
-      // abaikan — badge saja
-    }
-  }
-
+  // Badge PPIC tidak dihitung di halaman Packing supaya halaman rekam terbuka cepat
   return (
-    <AppShell userName={profile.full_name} role={profile.role} alertCount={alertCount}>
+    <AppShell userName={profile.full_name} role={profile.role} alertCount={0}>
       {children}
     </AppShell>
   );
