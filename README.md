@@ -18,6 +18,22 @@ Web operasional untuk stock, barang masuk/keluar, batch produksi, dan rekomendas
 | Riwayat Mutasi | Timeline semua pergerakan stock + kartu stock per SKU |
 | Master SKU | Tambah/edit SKU, upload Excel, nonaktifkan SKU |
 | Parameter PPIC | Min/Max cover days, lead time, bobot forecast, batas ranking |
+| Stock Opname | Hitung fisik → stock sistem otomatis disesuaikan (Adjustment +/−) |
+| Rekam Packing | Scan resi → rekam video packing → scan resi yang sama → video diupload (HP) |
+| Riwayat Packing | Cari resi, filter tanggal/marketplace/petugas, putar & unduh video |
+| Pengaturan Packing | Lama simpan video, durasi, kualitas, marketplace, ringkasan storage |
+| Kelola Petugas | Buat akun petugas (username + password), role, aktif/nonaktif |
+
+## Role
+
+| Role | Akses |
+|---|---|
+| Admin | Semua menu |
+| Supervisor | Menu Packing: semua rekaman + Pengaturan Packing |
+| Petugas Packing | Rekam Packing + riwayat rekamannya sendiri |
+
+Petugas login pakai **username** (di Supabase Auth tersimpan sebagai `<username>@petugas.prettybasic.id`, tidak pernah dikirimi email).
+Akun dibuat admin di menu Kelola Petugas lewat Edge Function `pack-staff` (service role hanya ada di Supabase).
 
 ## Setup lokal
 
@@ -38,8 +54,18 @@ Env yang dibutuhkan (lihat `.env.example`):
 
 ## Database
 
-Skema lengkap ada di `supabase/migrations/0001_init.sql` (tabel, view, RLS, fungsi RPC).
+Skema ada di `supabase/migrations/` (urut 0001 → 0004). `0004_packing_storage.sql` butuh fitur Supabase
+(storage, vault, pg_cron, pg_net) jadi dilewati oleh test lokal.
 Jalankan sekali di Supabase → SQL Editor. Uji lokal tanpa Supabase: `npm run test:migration`.
+
+## Rekam Packing — cara kerja
+
+- Kamera belakang dipakai sekaligus untuk scan barcode (BarcodeDetector / ZXing) dan rekam (MediaRecorder: mp4 di iPhone, webm/mp4 di Android).
+- Potongan video disimpan tiap detik di IndexedDB. Tab tertutup → saat dibuka lagi rekaman dikirim dengan status **Terputus**.
+- Upload langsung dari browser ke bucket private `pack-videos` (progress + coba ulang otomatis, antre saat offline).
+- Video diputar lewat signed URL 10 menit. Kedaluwarsa = jam selesai + lama simpan saat itu.
+- Job harian 03.00 WIB (pg_cron → Edge Function `pack-cleanup`) menghapus file kedaluwarsa; catatan paket tetap ada.
+- Pasang/perbarui di Supabase: `SUPABASE_ACCESS_TOKEN=sbp_… node scripts/deploy-packing.mjs`.
 
 ## Script
 

@@ -11,27 +11,35 @@ import {
   Box,
   ChevronLeft,
   ClipboardCheck,
+  History,
   Factory,
   KeyRound,
   LineChart,
   LogOut,
   Menu,
+  ScanBarcode,
   Settings,
+  SlidersHorizontal,
   Table,
   Tags,
+  Users,
 } from "lucide-react";
 import { cn } from "@/lib/cn";
 import { signOut } from "@/app/actions/auth";
+import { ROLE_LABEL, type AppRole } from "@/lib/packing/types";
 
 const STORAGE_KEY = "pb-sidebar-collapsed";
 
 const NAV: {
   section: string;
+  /** Role yang boleh melihat seksi ini (default: admin saja) */
+  roles?: AppRole[];
   items: {
     href: string;
     label: string;
     icon: React.ElementType;
     badge?: boolean;
+    roles?: AppRole[];
   }[];
 }[] = [
   {
@@ -43,6 +51,16 @@ const NAV: {
       { href: "/barang-keluar", label: "Barang Keluar", icon: ArrowUp },
       { href: "/stock-opname", label: "Stock Opname", icon: ClipboardCheck },
       { href: "/batch", label: "Batch Produksi", icon: Factory },
+    ],
+  },
+  {
+    section: "Packing",
+    roles: ["admin", "supervisor", "petugas"],
+    items: [
+      { href: "/packing", label: "Rekam Packing", icon: ScanBarcode },
+      { href: "/packing/riwayat", label: "Riwayat Packing", icon: History },
+      { href: "/packing/pengaturan", label: "Pengaturan Packing", icon: SlidersHorizontal, roles: ["admin", "supervisor"] },
+      { href: "/packing/petugas", label: "Kelola Petugas", icon: Users, roles: ["admin"] },
     ],
   },
   {
@@ -63,16 +81,20 @@ const NAV: {
 
 export function AppShell({
   userName,
-  userRole,
+  role,
   alertCount,
   children,
 }: {
   userName: string;
-  userRole: string;
+  role: AppRole;
   alertCount: number;
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
+  const nav = NAV.filter((g) => (g.roles ?? ["admin"]).includes(role))
+    .map((g) => ({ ...g, items: g.items.filter((i) => (i.roles ?? g.roles ?? ["admin"]).includes(role)) }))
+    .filter((g) => g.items.length > 0);
+  const allHrefs = nav.flatMap((g) => g.items.map((i) => i.href));
   const [collapsed, setCollapsed] = useState(false);
   // Menu samping di HP (layar < lg) — terbuka sebagai laci
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -160,7 +182,7 @@ export function AppShell({
           )}
         </div>
 
-        {NAV.map((group) => (
+        {nav.map((group) => (
           <div key={group.section}>
             <div
               className={cn(
@@ -171,8 +193,10 @@ export function AppShell({
               {group.section}
             </div>
             {group.items.map((item) => {
+              // Aktif kalau cocok dan tidak ada menu lain yang lebih spesifik (mis. /packing vs /packing/riwayat)
+              const matches = (href: string) => pathname === href || pathname.startsWith(`${href}/`);
               const active =
-                pathname === item.href || pathname.startsWith(`${item.href}/`);
+                matches(item.href) && !allHrefs.some((h) => h.length > item.href.length && matches(h));
               const Icon = item.icon;
               return (
                 <Link
@@ -225,7 +249,7 @@ export function AppShell({
               <div className="truncate text-[13px] font-semibold text-ink">
                 {userName}
               </div>
-              <div className="mt-px text-[11px] text-grey-1">{userRole}</div>
+              <div className="mt-px text-[11px] text-grey-1">{ROLE_LABEL[role]}</div>
             </div>
           )}
           <div className={cn("flex", mini ? "flex-col gap-1" : "gap-0.5")}>

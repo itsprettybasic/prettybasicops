@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Plus_Jakarta_Sans } from "next/font/google";
 import { Toaster } from "sonner";
 import "./globals.css";
@@ -12,7 +12,10 @@ const jakarta = Plus_Jakarta_Sans({
 export const metadata: Metadata = {
   title: "Pretty Basic · PPIC",
   description: "PPIC System Pretty Basic",
+  appleWebApp: { capable: true, title: "PB Ops", statusBarStyle: "default" },
 };
+
+export const viewport: Viewport = { themeColor: "#7F0010" };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (

@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { Eye, EyeOff } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
+import { loginEmail } from "@/lib/packing/types";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -20,13 +21,13 @@ export default function LoginPage() {
     setLoading(true);
     setError(null);
     const supabase = createClient();
-    const { error } = await supabase.auth.signInWithPassword({ email: email.trim(), password });
+    const { error } = await supabase.auth.signInWithPassword({ email: loginEmail(email), password });
     if (error) {
-      setError("Email atau password salah.");
+      setError("Username/email atau password salah.");
       setLoading(false);
       return;
     }
-    router.replace("/ppic");
+    router.replace("/"); // middleware mengarahkan sesuai role
     router.refresh();
   }
 
@@ -39,11 +40,14 @@ export default function LoginPage() {
         </div>
 
         <div className="mb-4">
-          <label className="form-label" htmlFor="email">Email</label>
+          <label className="form-label" htmlFor="email">Username atau Email</label>
           <input
             id="email"
-            type="email"
-            autoComplete="email"
+            type="text"
+            autoCapitalize="none"
+            autoCorrect="off"
+            spellCheck={false}
+            autoComplete="username"
             required
             autoFocus
             className="form-input"

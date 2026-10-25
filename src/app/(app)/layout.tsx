@@ -1,19 +1,17 @@
 import { redirect } from "next/navigation";
 import { AppShell } from "@/components/layout/app-shell";
-import { createClient } from "@/lib/supabase/server";
+import { getCurrentUser } from "@/lib/data/profile";
 import { getPpicData, type PpicData } from "@/lib/data/ppic";
 import { AppDataProvider } from "@/components/providers/app-data";
 import { DEFAULT_PARAMS, monthStart } from "@/lib/ppic";
 import { todayJakarta } from "@/lib/format";
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) redirect("/login");
-
-  const name = (user.user_metadata?.full_name as string | undefined)?.trim() || "Admin";
+  const current = await getCurrentUser();
+  if (!current) redirect("/login");
+  // Menu stock/PPIC khusus admin; supervisor & petugas langsung ke Packing
+  if (current.profile?.role !== "admin") redirect("/packing");
+  const { profile } = current;
 
   let data: PpicData;
   try {
@@ -32,7 +30,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
 
   return (
     <AppDataProvider today={data.today} months={data.months} params={data.params} rows={data.rows}>
-      <AppShell userName={name} userRole="Owner" alertCount={alertCount}>
+      <AppShell userName={profile.full_name} role={profile.role} alertCount={alertCount}>
         {children}
       </AppShell>
     </AppDataProvider>
