@@ -20,6 +20,9 @@ const settingsSchema = z
       .array(z.string().trim().min(1, "Nama marketplace kosong").max(30, "Nama marketplace maks 30 karakter"))
       .min(1, "Minimal 1 marketplace")
       .max(10, "Maksimal 10 marketplace"),
+    packers: z
+      .array(z.string().trim().min(1, "Nama yang packing kosong").max(50, "Nama maks 50 karakter"))
+      .max(20, "Maksimal 20 nama"),
     duplicate_warning: z.boolean(),
     record_audio: z.boolean(),
     storage_quota_gb: z.number().positive("Kuota storage harus > 0").max(1000, "Kuota storage maks 1000 GB"),
@@ -30,6 +33,8 @@ const settingsSchema = z
     }
     const lower = d.marketplaces.map((m) => m.toLowerCase());
     if (new Set(lower).size !== lower.length) ctx.addIssue({ code: "custom", message: "Ada marketplace yang dobel" });
+    const names = d.packers.map((m) => m.toLowerCase());
+    if (new Set(names).size !== names.length) ctx.addIssue({ code: "custom", message: "Ada nama packing yang dobel" });
   });
 
 export type PackSettingsInput = z.input<typeof settingsSchema>;

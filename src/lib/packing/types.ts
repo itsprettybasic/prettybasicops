@@ -8,6 +8,8 @@ export interface PackSettings {
   min_duration_sec: number;
   quality: PackQuality;
   marketplaces: string[];
+  /** Nama yang packing (mis. Lulu, Lala), dipilih sebelum mulai rekam. Kosong = pakai nama akun. */
+  packers: string[];
   duplicate_warning: boolean;
   record_audio: boolean;
   storage_quota_gb: number;

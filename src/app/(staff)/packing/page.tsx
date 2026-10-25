@@ -14,6 +14,7 @@ const FALLBACK_SETTINGS: PackSettings = {
   min_duration_sec: 5,
   quality: "hemat",
   marketplaces: ["Shopee", "TikTok Shop"],
+  packers: [],
   duplicate_warning: true,
   record_audio: false,
   storage_quota_gb: 1,

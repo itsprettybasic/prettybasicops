@@ -97,6 +97,8 @@ export function PackSettingsForm({
   const [recordAudio, setRecordAudio] = useState(settings.record_audio);
   const [marketplaces, setMarketplaces] = useState<string[]>(settings.marketplaces);
   const [newMarket, setNewMarket] = useState("");
+  const [packers, setPackers] = useState<string[]>(settings.packers ?? []);
+  const [newPacker, setNewPacker] = useState("");
   const [dupWarning, setDupWarning] = useState(settings.duplicate_warning);
   const [quota, setQuota] = useState(String(settings.storage_quota_gb));
   const [saving, setSaving] = useState(false);
@@ -122,6 +124,21 @@ export function PackSettingsForm({
     setNewMarket("");
   }
 
+  function addPacker() {
+    const v = newPacker.trim();
+    if (!v) return;
+    if (packers.some((m) => m.toLowerCase() === v.toLowerCase())) {
+      toast.error(`${v} sudah ada`);
+      return;
+    }
+    if (packers.length >= 20) {
+      toast.error("Maksimal 20 nama");
+      return;
+    }
+    setPackers([...packers, v]);
+    setNewPacker("");
+  }
+
   async function save() {
     setSaving(true);
     const res = await updatePackSettings({
@@ -130,6 +147,7 @@ export function PackSettingsForm({
       min_duration_sec: Number(minSec),
       quality,
       marketplaces,
+      packers,
       duplicate_warning: dupWarning,
       record_audio: recordAudio,
       storage_quota_gb: Number(quota.replace(",", ".")),
@@ -338,6 +356,51 @@ export function PackSettingsForm({
           label="Rekam suara"
           hint="Default mati. Kalau dinyalakan, HP akan minta izin mikrofon dan ukuran video sedikit lebih besar."
         />
+      </Panel>
+
+      {/* ── Yang packing ── */}
+      <Panel
+        title="Yang Packing"
+        sub="Dipilih sebelum mulai rekam, supaya ketahuan siapa yang packing tiap paket. Kosongkan untuk memakai nama akun login."
+      >
+        <div className="mb-3 flex flex-wrap gap-2">
+          {packers.length === 0 && <span className="text-[13px] text-grey-1">Belum ada nama — dipakai nama akun login.</span>}
+          {packers.map((m) => (
+            <span
+              key={m}
+              className="inline-flex items-center gap-1.5 rounded-full border border-line bg-bg py-1.5 pr-1.5 pl-3.5 text-[13px] font-semibold text-ink"
+            >
+              {m}
+              <button
+                type="button"
+                aria-label={`Hapus ${m}`}
+                onClick={() => setPackers(packers.filter((x) => x !== m))}
+                className="flex h-6 w-6 cursor-pointer items-center justify-center rounded-full text-grey-1 hover:bg-neg-tint hover:text-neg"
+              >
+                <X className="h-3.5 w-3.5" />
+              </button>
+            </span>
+          ))}
+        </div>
+        <div className="flex max-w-[420px] gap-2">
+          <input
+            className="form-input"
+            placeholder="Mis. Lulu"
+            maxLength={50}
+            value={newPacker}
+            onChange={(e) => setNewPacker(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                e.preventDefault();
+                addPacker();
+              }
+            }}
+          />
+          <Button onClick={addPacker} disabled={!newPacker.trim()}>
+            <Plus className="h-4 w-4" />
+            Tambah
+          </Button>
+        </div>
       </Panel>
 
       {/* ── Marketplace ── */}

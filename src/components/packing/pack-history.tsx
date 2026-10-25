@@ -23,11 +23,10 @@ const COLS = 7;
 
 export function PackHistory({
   isManager,
-  userId,
   today,
 }: {
   isManager: boolean;
-  userId: string;
+  userId?: string;
   today: string;
 }) {
   const [search, setSearch] = useState("");
@@ -59,32 +58,23 @@ export function PackHistory({
     const supabase = createClient();
     supabase
       .from("pack_settings")
-      .select("marketplaces")
+      .select("marketplaces, packers")
       .maybeSingle()
-      .then(({ data }) =>
-        setMarketplaces((data?.marketplaces as string[] | undefined) ?? []),
-      );
-    if (!isManager) return;
-    supabase
-      .from("pack_records")
-      .select("packer_id, packer_name")
-      .order("created_at", { ascending: false })
-      .limit(2000)
       .then(({ data }) => {
-        const map = new Map<string, string>();
-        for (const r of (data ?? []) as {
-          packer_id: string;
-          packer_name: string;
-        }[]) {
-          if (!map.has(r.packer_id)) map.set(r.packer_id, r.packer_name);
-        }
-        setPackers(
-          [...map]
-            .map(([id, name]) => ({ id, name }))
-            .sort((a, b) => a.name.localeCompare(b.name, "id")),
-        );
+        setMarketplaces((data?.marketplaces as string[] | undefined) ?? []);
+        // Pilihan filter "yang packing" = daftar di Pengaturan + nama yang pernah tercatat
+        const names = new Set<string>((data?.packers as string[] | undefined) ?? []);
+        void supabase
+          .from("pack_records")
+          .select("packer_name")
+          .order("created_at", { ascending: false })
+          .limit(2000)
+          .then(({ data: rows }) => {
+            for (const r of (rows ?? []) as { packer_name: string }[]) names.add(r.packer_name);
+            setPackers([...names].sort((a, b) => a.localeCompare(b, "id")).map((name) => ({ id: name, name })));
+          });
       });
-  }, [isManager]);
+  }, []);
 
   const load = useCallback(
     async (offset: number) => {
@@ -100,7 +90,7 @@ export function PackHistory({
       if (query) q = q.ilike("resi", `%${query.replace(/[%_]/g, "")}%`);
       if (marketplace) q = q.eq("marketplace", marketplace);
       if (status) q = q.eq("status", status);
-      if (isManager && packer) q = q.eq("packer_id", packer);
+      if (packer) q = q.eq("packer_name", packer);
       const { data, count, error: err } = await q;
       setLoading(false);
       if (err) {
@@ -111,7 +101,7 @@ export function PackHistory({
       setRows((prev) => (offset === 0 ? list : [...prev, ...list]));
       setTotal(count ?? 0);
     },
-    [from, to, query, marketplace, status, packer, isManager],
+    [from, to, query, marketplace, status, packer],
   );
 
   useEffect(() => {
@@ -165,18 +155,17 @@ export function PackHistory({
               aria-label="Sampai tanggal"
             />
           </div>
-          {isManager && (
+          {packers.length > 0 && (
             <select
               className="select-input"
               value={packer}
               onChange={(e) => setPacker(e.target.value)}
-              aria-label="Petugas"
+              aria-label="Yang packing"
             >
-              <option value="">Semua petugas</option>
+              <option value="">Semua yang packing</option>
               {packers.map((p) => (
                 <option key={p.id} value={p.id}>
                   {p.name}
-                  {p.id === userId ? " (Anda)" : ""}
                 </option>
               ))}
             </select>

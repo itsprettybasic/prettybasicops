@@ -39,6 +39,7 @@ import { computeExpiry } from "@/lib/packing/expiry";
 import { PACK_STATUS_LABEL, QUALITY_PRESET, type PackSettings, type PackStatus } from "@/lib/packing/types";
 
 const MARKETPLACE_KEY = "pb-pack-marketplace";
+const PACKER_KEY = "pb-pack-packer";
 
 type Screen = "ready" | "confirm" | "recording" | "done";
 type CamState = { kind: "starting" } | { kind: "ready" } | { kind: "error"; title: string; detail: string };
@@ -47,6 +48,7 @@ interface FinishedPack {
   id: string;
   resi: string;
   marketplace: string;
+  packerName: string;
   status: PackStatus;
   finishedAt: number;
   durationSec: number;
@@ -116,6 +118,30 @@ export function PackRecorder({
   const [cancelOpen, setCancelOpen] = useState(false);
   const [engine, setEngine] = useState<string | null>(null);
 
+  // Nama yang packing (dari Pengaturan). Wajib dipilih kalau daftarnya diisi.
+  const [packer, setPacker] = useState("");
+  const packerRef = useRef(packer);
+  packerRef.current = packer;
+  const needPacker = settings.packers.length > 0;
+
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem(PACKER_KEY);
+      if (saved && settings.packers.includes(saved)) setPacker(saved);
+    } catch {
+      // localStorage tidak tersedia
+    }
+  }, [settings.packers]);
+
+  function choosePacker(name: string) {
+    setPacker(name);
+    try {
+      localStorage.setItem(PACKER_KEY, name);
+    } catch {
+      // abaikan
+    }
+  }
+
   const pendingRef = useRef(pending);
   pendingRef.current = pending;
   const marketplaceRef = useRef(marketplace);
@@ -169,6 +195,7 @@ export function PackRecorder({
               recordId: s.id,
               resi: s.resi,
               marketplace: s.marketplace,
+              packerName: s.packerName,
               status: "terputus",
               startedAt: s.startedAt,
               finishedAt: s.startedAt + chunks.length * 1000,
@@ -259,6 +286,7 @@ export function PackRecorder({
           recordId: session.id,
           resi: session.resi,
           marketplace: session.marketplace,
+          packerName: session.packerName,
           status,
           startedAt: session.startedAt,
           finishedAt,
@@ -287,6 +315,7 @@ export function PackRecorder({
           id: session.id,
           resi: session.resi,
           marketplace: session.marketplace,
+          packerName: session.packerName || packerName,
           status,
           finishedAt,
           durationSec,
@@ -305,7 +334,7 @@ export function PackRecorder({
         busyRef.current = false;
       }
     },
-    [releaseWake],
+    [releaseWake, packerName],
   );
 
   const finishRef = useRef(finish);
@@ -329,6 +358,7 @@ export function PackRecorder({
         id,
         resi,
         marketplace: marketplaceRef.current,
+        packerName: packerRef.current || undefined,
         startedAt,
         mime,
         path: buildVideoPath(resi, startedAt, extFromMime(mime)),
@@ -378,6 +408,7 @@ export function PackRecorder({
           p_started_at: new Date(startedAt).toISOString(),
           p_finished_at: null,
           p_duration_sec: null,
+          p_packer_name: session.packerName ?? null,
         })
         .then(() => {}, () => {});
     },
@@ -665,6 +696,30 @@ export function PackRecorder({
             </InfoBanner>
           )}
 
+          {needPacker && (
+            <div>
+              <div className="form-label">Siapa yang packing?</div>
+              <div
+                className="grid gap-2"
+                style={{ gridTemplateColumns: `repeat(${Math.min(settings.packers.length, 3)}, minmax(0, 1fr))` }}
+              >
+                {settings.packers.map((n) => (
+                  <button
+                    key={n}
+                    type="button"
+                    onClick={() => choosePacker(n)}
+                    className={cn(
+                      "h-12 cursor-pointer rounded-xl border-2 px-2 text-[15px] font-bold transition-colors",
+                      packer === n ? "border-primary bg-primary text-white" : "border-line bg-white text-ink-2",
+                    )}
+                  >
+                    {n}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
           <div>
             <div className="form-label">Marketplace</div>
             <div
@@ -690,6 +745,7 @@ export function PackRecorder({
           <Button
             variant="neg"
             className="h-16 w-full text-lg"
+            disabled={needPacker && !packer}
             onClick={() => {
               const resi = pending.resi;
               setPending(null);
@@ -697,7 +753,7 @@ export function PackRecorder({
             }}
           >
             <span className="h-3 w-3 rounded-full bg-white" />
-            Mulai Rekam
+            {needPacker && !packer ? "Pilih yang packing dulu" : "Mulai Rekam"}
           </Button>
           <Button
             variant="ghost"
@@ -718,7 +774,10 @@ export function PackRecorder({
           <div className="rounded-xl border border-line bg-white px-4 py-3">
             <div className="text-[12px] font-bold tracking-[0.06em] text-grey-1 uppercase">Sedang merekam</div>
             <div className="mt-1 font-mono text-2xl font-extrabold break-all text-ink">{sessionRef.current.resi}</div>
-            <div className="mt-1 text-[14px] font-semibold text-ink-3">{sessionRef.current.marketplace}</div>
+            <div className="mt-1 text-[14px] font-semibold text-ink-3">
+              {sessionRef.current.marketplace}
+              {sessionRef.current.packerName ? ` · ${sessionRef.current.packerName}` : ""}
+            </div>
           </div>
           {hint && <div className="rounded-lg bg-warn-tint px-3 py-2 text-center text-[13px] font-semibold text-warn-text">{hint}</div>}
           <Button variant="primary" className="h-16 w-full text-lg" onClick={manualFinish} disabled={!minReached}>
@@ -748,8 +807,8 @@ export function PackRecorder({
               <dd className="font-mono font-bold break-all text-ink">{result.resi}</dd>
               <dt className="text-grey-1">Marketplace</dt>
               <dd className="font-semibold text-ink">{result.marketplace}</dd>
-              <dt className="text-grey-1">Petugas</dt>
-              <dd className="font-semibold text-ink">{packerName}</dd>
+              <dt className="text-grey-1">Packing</dt>
+              <dd className="font-semibold text-ink">{result.packerName}</dd>
               <dt className="text-grey-1">Jam selesai</dt>
               <dd className="font-semibold text-ink">{fmtTime(new Date(result.finishedAt))} WIB</dd>
               <dt className="text-grey-1">Durasi</dt>

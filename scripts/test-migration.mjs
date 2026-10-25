@@ -95,3 +95,12 @@ try { await db.query(`select save_pack_record($1, 'SPX123', 'Shopee', 'selesai',
 assert(bad, 'bukan pemilik ditolak');
 console.log('packing OK', (await db.query(`select * from pack_storage_summary()`)).rows[0]);
 }
+{
+  const as = (id) => db.query(`select set_config('request.jwt.claim.sub', $1, false)`, [id]);
+  await as('00000000-0000-0000-0000-00000000000b');
+  const r = (await db.query(`select (save_pack_record('10000000-0000-0000-0000-000000000009', 'LULU001', 'Shopee', 'selesai', now(), now(), 30, 'Lulu')).*`)).rows[0];
+  if (r.packer_name !== 'Lulu') { console.error('FAIL: nama packing'); process.exit(1); }
+  const r2 = (await db.query(`select (save_pack_record('10000000-0000-0000-0000-000000000010', 'BUDI001', 'Shopee', 'selesai', now(), now(), 30)).*`)).rows[0];
+  if (r2.packer_name !== 'Budi') { console.error('FAIL: default nama akun'); process.exit(1); }
+  console.log('packers OK');
+}

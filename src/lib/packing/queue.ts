@@ -17,6 +17,8 @@ export interface RecordingSession {
   id: string;
   resi: string;
   marketplace: string;
+  /** Nama yang packing (pilihan di layar rekam); kosong = nama akun */
+  packerName?: string;
   startedAt: number;
   mime: string;
   path: string;
@@ -28,6 +30,7 @@ export interface SaveJob {
   recordId: string;
   resi: string;
   marketplace: string;
+  packerName?: string;
   status: PackStatus;
   startedAt: number;
   finishedAt: number;
@@ -173,6 +176,7 @@ async function runJob(job: Job) {
       p_started_at: new Date(job.startedAt).toISOString(),
       p_finished_at: new Date(job.finishedAt).toISOString(),
       p_duration_sec: job.durationSec,
+      p_packer_name: job.packerName ?? null,
     });
     if (error) throw new Error(error.message);
     return;
