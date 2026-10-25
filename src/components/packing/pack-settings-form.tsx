@@ -315,7 +315,7 @@ export function PackSettingsForm({
             <div className="form-hint">Lewat dari ini rekaman otomatis berhenti & disimpan (&quot;dihentikan otomatis&quot;)</div>
           </div>
           <div>
-            <label className="form-label">Durasi Minimal sebelum Scan Penutup</label>
+            <label className="form-label">Durasi Minimal sebelum Tombol Selesai Aktif</label>
             <div className="flex items-center gap-2">
               <input
                 type="number"
@@ -328,7 +328,7 @@ export function PackSettingsForm({
               />
               <span className="text-[12.5px] text-grey-1">detik</span>
             </div>
-            <div className="form-hint">Scan resi yang sama sebelum ini diabaikan (supaya tidak berhenti karena terbaca dua kali)</div>
+            <div className="form-hint">Tombol Selesai Rekam baru aktif setelah durasi ini (supaya tidak tertekan tanpa sengaja)</div>
           </div>
         </div>
 

@@ -412,17 +412,12 @@ export function PackRecorder({
     (raw: string) => {
       if (busyRef.current) return;
       const now = Date.now();
-      const decision = decideScan(phaseRef.current, raw, now, memoryRef.current, {
-        minDurationSec: settings.min_duration_sec,
-      });
+      const decision = decideScan(phaseRef.current, raw, now, memoryRef.current);
       if (normalizeResi(raw)) memoryRef.current = rememberScan(raw, now);
 
       switch (decision.type) {
         case "start":
           if (pendingRef.current?.resi !== decision.resi) void showPending(decision.resi);
-          break;
-        case "finish":
-          void finishRef.current("selesai");
           break;
         case "reject":
           vibrate([200, 80, 200]);
@@ -430,11 +425,10 @@ export function PackRecorder({
           toast.error(decision.message);
           break;
         case "ignore":
-          if (decision.reason === "too_soon") setHint(`Tunggu minimal ${settings.min_duration_sec} detik sebelum scan penutup`);
           break;
       }
     },
-    [settings.min_duration_sec, showPending],
+    [showPending],
   );
 
   const onCodeRef = useRef(onCode);
@@ -731,7 +725,7 @@ export function PackRecorder({
             {minReached ? "Selesai Rekam" : `Selesai bisa setelah ${settings.min_duration_sec} detik`}
           </Button>
           <div className="text-center text-[13px] text-grey-1">
-            Atau scan resi yang sama lagi · berhenti otomatis setelah {Math.round(settings.max_duration_sec / 60)} menit
+            Berhenti otomatis setelah {Math.round(settings.max_duration_sec / 60)} menit
           </div>
           <Button variant="ghost" className="h-12 w-full text-base text-neg hover:text-neg" onClick={() => setCancelOpen(true)}>
             Batalkan rekaman

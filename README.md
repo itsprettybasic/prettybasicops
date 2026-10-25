@@ -19,7 +19,7 @@ Web operasional untuk stock, barang masuk/keluar, batch produksi, dan rekomendas
 | Master SKU | Tambah/edit SKU, upload Excel, nonaktifkan SKU |
 | Parameter PPIC | Min/Max cover days, lead time, bobot forecast, batas ranking |
 | Stock Opname | Hitung fisik → stock sistem otomatis disesuaikan (Adjustment +/−) |
-| Rekam Packing | Scan resi → rekam video packing → scan resi yang sama → video diupload (HP) |
+| Rekam Packing | Scan resi → cek rincian → Mulai Rekam → Selesai Rekam → video diupload (HP) |
 | Riwayat Packing | Cari resi, filter tanggal/marketplace/petugas, putar & unduh video |
 | Pengaturan Packing | Lama simpan video, durasi, kualitas, marketplace, ringkasan storage |
 | Kelola Petugas | Buat akun petugas (username + password), role, aktif/nonaktif |

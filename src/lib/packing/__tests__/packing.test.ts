@@ -4,7 +4,7 @@ import { computeExpiry, daysLeft, videoState } from "../expiry";
 import { buildVideoPath, extFromMime, pickMimeType } from "../media";
 import { loginEmail } from "../types";
 
-const cfg = { minDurationSec: 5, cooldownMs: 2500 };
+const cfg = { cooldownMs: 2500 };
 const fresh = { lastCode: null, lastAt: 0 };
 const T0 = 1_000_000;
 const recording: ScanPhase = { phase: "recording", resi: "SPXID0123456789", startedAt: T0 };
@@ -25,12 +25,9 @@ describe("Aturan scan", () => {
     const mem = rememberScan("SPXID0123456789", T0);
     expect(decideScan(recording, "SPXID0123456789", T0 + 800, mem, cfg)).toEqual({ type: "ignore", reason: "cooldown" });
   });
-  it("resi sama sebelum durasi minimal diabaikan", () => {
-    expect(decideScan(recording, "SPXID0123456789", T0 + 4_000, fresh, cfg)).toEqual({ type: "ignore", reason: "too_soon" });
-  });
-  it("resi sama setelah durasi minimal → selesai", () => {
-    const mem = rememberScan("SPXID0123456789", T0);
-    expect(decideScan(recording, "SPXID0123456789", T0 + 5_000, mem, cfg)).toEqual({ type: "finish", resi: "SPXID0123456789" });
+  it("resi sama saat merekam tidak menghentikan rekaman (selesai hanya lewat tombol)", () => {
+    expect(decideScan(recording, "SPXID0123456789", T0 + 4_000, fresh, cfg)).toEqual({ type: "ignore", reason: "recording" });
+    expect(decideScan(recording, "SPXID0123456789", T0 + 600_000, fresh, cfg)).toEqual({ type: "ignore", reason: "recording" });
   });
   it("kode yang bukan resi diabaikan", () => {
     expect(normalizeResi("https://shopee.co.id/x?y=1")).toBeNull();
