@@ -20,6 +20,7 @@ import {
   LineChart,
   LogOut,
   Menu,
+  Package,
   ScanBarcode,
   Settings,
   SlidersHorizontal,
@@ -79,6 +80,7 @@ const NAV: {
   {
     section: "Pengaturan",
     items: [
+      { href: "/produk", label: "Database Produk", icon: Package },
       { href: "/master-sku", label: "Master SKU", icon: Tags },
       { href: "/parameter", label: "Parameter PPIC", icon: Settings },
     ],
