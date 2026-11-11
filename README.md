@@ -1,6 +1,6 @@
 # Pretty Basic — PPIC System
 
-Web operasional untuk stock, barang masuk/keluar, batch produksi, dan rekomendasi produksi (PPIC).
+Web operasional untuk stock, barang masuk/keluar, purchase order ke vendor, pengiriman kain, dan rekomendasi produksi (PPIC).
 
 - **Online:** https://prettybasicops.vercel.app
 - **Stack:** Next.js 15 (App Router) · Supabase (Postgres + Auth) · Vercel · Tailwind v4
@@ -10,10 +10,13 @@ Web operasional untuk stock, barang masuk/keluar, batch produksi, dan rekomendas
 
 | Menu | Isi |
 |---|---|
-| Rekomendasi Produksi | Status PPIC per SKU (Habis/Produksi/Aman/…), ranking A/B/C, saran qty, buat batch |
+| Rekomendasi Produksi | Status PPIC per SKU (Habis/Produksi/Aman/…), ranking A/B/C, saran qty, buat PO |
 | Stock Live | Stock real-time per SKU, + Barang Masuk / – Barang Keluar |
 | Barang Masuk / Keluar | Riwayat catatan (1 catatan = banyak SKU), upload Excel, batalkan catatan |
-| Batch Produksi | Batch di konveksi, terima barang sebagian/penuh, export surat order |
+| Purchase Order | PO ke vendor (tanggal PO & kedatangan, qty pcs, harga opsional), edit/hapus/batal, dokumen PO berlogo |
+| Penerimaan Barang | Terima barang dari PO (sebagian/penuh), edit/hapus, bukti penerimaan; otomatis masuk stock & mutasi |
+| Pengiriman Kain | Kain yang dikirim ke vendor (jenis, warna, kg, roll), filter, export Excel, Surat Jalan |
+| Vendor | Database vendor: kontak, telepon, alamat, aktif/nonaktif |
 | Ringkasan Produk | Rekap per produk (semua warna & size) |
 | Riwayat Mutasi | Timeline semua pergerakan stock + kartu stock per SKU |
 | Master SKU | Tambah/edit SKU, upload Excel, nonaktifkan SKU |

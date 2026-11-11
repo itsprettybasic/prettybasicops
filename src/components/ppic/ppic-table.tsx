@@ -29,7 +29,7 @@ import { FilterChip } from "@/components/ui/filter-chip";
 import { SearchInput } from "@/components/ui/search-input";
 import { RankBadge, StatusBadge } from "@/components/ui/badge";
 import { EmptyRow, Pagination, SkuCell, SortHeader } from "@/components/ui/table-parts";
-import { BatchModal } from "./batch-modal";
+import { PoFormModal } from "@/components/po/po-form-modal";
 
 type StatusFilter = "all" | "HABIS" | "PRODUKSI" | "AMAN" | "OVERSTOCK" | "DEADSTOCK" | "BARU";
 
@@ -189,7 +189,7 @@ export function PpicTable({ rows, today }: { rows: PpicRow[]; today: string }) {
       }),
       col.accessor("inProduction", {
         id: "inProduction",
-        header: "Produksi",
+        header: "Dalam PO",
         meta: { num: true },
         cell: ({ getValue }) =>
           getValue() > 0 ? <span className="text-primary-2">{fmtInt(getValue())}</span> : <span className="text-grey-2">0</span>,
@@ -295,7 +295,7 @@ export function PpicTable({ rows, today }: { rows: PpicRow[]; today: string }) {
           { header: "Min", numFmt: "#,##0", value: (r) => r.minStock },
           { header: "Max", numFmt: "#,##0", value: (r) => r.maxStock },
           { header: "Stok", numFmt: "#,##0", value: (r) => r.stock },
-          { header: "Produksi", numFmt: "#,##0", value: (r) => r.inProduction },
+          { header: "Dalam PO", numFmt: "#,##0", value: (r) => r.inProduction },
           { header: "Hari Cover", numFmt: "#,##0", value: (r) => r.daysCover },
           { header: "Status", width: 14, value: (r) => r.status },
           { header: "Saran", numFmt: "#,##0", value: (r) => r.suggestion },
@@ -380,7 +380,7 @@ export function PpicTable({ rows, today }: { rows: PpicRow[]; today: string }) {
               <Download className="h-3.5 w-3.5" /> Export Excel
             </Button>
             <Button variant="blue" onClick={openBatch}>
-              Buat Batch Produksi ({fmtInt(selectedIds.length)})
+              Buat PO ({fmtInt(selectedIds.length)})
             </Button>
           </>
         }
@@ -550,12 +550,12 @@ export function PpicTable({ rows, today }: { rows: PpicRow[]; today: string }) {
       </Panel>
 
       {batchOpen && (
-        <BatchModal
+        <PoFormModal
           key={batchSkuIds.join(",")}
           open={batchOpen}
           onOpenChange={setBatchOpen}
           skuIds={batchSkuIds}
-          onCreated={() => setRowSelection({})}
+          onSaved={() => setRowSelection({})}
         />
       )}
     </>

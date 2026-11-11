@@ -10,12 +10,14 @@ import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { InfoBanner } from "@/components/ui/info-banner";
 import { SkuCell } from "@/components/ui/table-parts";
 import { useAppData } from "@/components/providers/app-data";
-import { getDocumentDetail, voidStockDocument, type DocumentDetail } from "@/app/actions/stock";
+import { deleteReceipt, getDocumentDetail, voidStockDocument, type DocumentDetail } from "@/app/actions/stock";
+import { ReceiptEditModal } from "@/components/po/receipt-edit-modal";
+import { Pencil, Printer, Trash2 } from "lucide-react";
 import { CHANNEL_LABEL, TYPE_LABEL, TYPE_OPTION_LABEL, TYPE_TONE } from "@/lib/constants";
 import { fmtDate, fmtDateLong, fmtInt, fmtSigned, fmtTime } from "@/lib/format";
 
 function SourceLabel({ source }: { source: string }) {
-  return <>{source === "excel" ? "Upload Excel" : source === "seed" ? "Import awal" : "Manual"}</>;
+  return <>{source === "excel" ? "Upload Excel" : source === "seed" ? "Import awal" : source === "opname" ? "Stock Opname" : "Manual"}</>;
 }
 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
@@ -42,6 +44,9 @@ export function DocumentDetailModal({
   const [doc, setDoc] = useState<DocumentDetail | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [confirmVoid, setConfirmVoid] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const [editing, setEditing] = useState(false);
+  const [reload, setReload] = useState(0);
 
   useEffect(() => {
     let alive = true;
@@ -53,11 +58,25 @@ export function DocumentDetailModal({
     return () => {
       alive = false;
     };
-  }, [documentId]);
+  }, [documentId, reload]);
 
   const isIn = doc?.direction === "in";
   const totalQty = doc?.lines.reduce((s, l) => s + l.qty, 0) ?? 0;
   const voided = !!doc?.voided_at;
+  const isReceipt = doc?.type === "produksi";
+
+  async function doDelete() {
+    if (!doc) return;
+    const res = await deleteReceipt(doc.id);
+    if (!res.ok) {
+      toast.error(`Gagal menghapus: ${res.error}`);
+      return;
+    }
+    toast.success(`Penerimaan ${doc.doc_no} dihapus · stock dikurangi lagi`);
+    setConfirmDelete(false);
+    onOpenChange(false);
+    router.refresh();
+  }
 
   async function doVoid(reason: string) {
     if (!doc) return;
@@ -75,13 +94,32 @@ export function DocumentDetailModal({
   return (
     <>
       <Modal
-        open={open}
+        open={open && !editing}
         onOpenChange={onOpenChange}
-        eyebrow={doc ? (isIn ? "Barang Masuk" : "Barang Keluar") : undefined}
+        eyebrow={doc ? (isReceipt ? "Penerimaan Barang" : isIn ? "Barang Masuk" : "Barang Keluar") : undefined}
         title={doc ? doc.doc_no : "Detail Catatan"}
         sub={doc ? fmtDateLong(doc.doc_date) : undefined}
         footerLeft={
-          doc && !voided ? (
+          doc && isReceipt ? (
+            <>
+              <a
+                href={`/cetak/penerimaan/${doc.id}`}
+                target="_blank"
+                rel="noopener"
+                className="inline-flex items-center gap-1.5 rounded-[10px] border border-line bg-white px-4 py-[9px] text-[13px] font-semibold text-ink-2 hover:border-grey-3"
+              >
+                <Printer className="h-3.5 w-3.5" /> Bukti Penerimaan
+              </a>
+              {!voided && (
+                <Button onClick={() => setEditing(true)}>
+                  <Pencil className="h-3.5 w-3.5" /> Edit
+                </Button>
+              )}
+              <Button className="text-neg hover:border-neg" onClick={() => setConfirmDelete(true)}>
+                <Trash2 className="h-3.5 w-3.5" /> Hapus
+              </Button>
+            </>
+          ) : doc && !voided ? (
             <Button className="text-neg hover:border-neg" onClick={() => setConfirmVoid(true)}>
               Batalkan Catatan
             </Button>
@@ -121,10 +159,15 @@ export function DocumentDetailModal({
                   )}
                 </span>
               </Field>
-              <Field label={isIn ? "Ref Batch" : "Channel"}>
+              <Field label={isIn ? "No PO / Vendor" : "Channel"}>
                 {isIn ? (
-                  doc.batch_no ? (
-                    <strong className="text-primary-2">{doc.batch_no}</strong>
+                  doc.po_no ? (
+                    <>
+                      <a href={`/po?id=${doc.po_id}`} className="font-bold text-primary-2 hover:underline">
+                        {doc.po_no}
+                      </a>
+                      {doc.vendor_name && <div className="truncate text-[12px] text-grey-1">{doc.vendor_name}</div>}
+                    </>
                   ) : (
                     "—"
                   )
@@ -143,8 +186,13 @@ export function DocumentDetailModal({
               <Field label="Sumber">
                 <SourceLabel source={doc.source} />
               </Field>
-              <div className="col-span-4">
+              <div className="col-span-2 md:col-span-4">
                 <Field label="Catatan">{doc.note || <span className="text-grey-2">—</span>}</Field>
+                {doc.updated_at && (
+                  <div className="mt-1 text-[11.5px] text-grey-1">
+                    Diubah {doc.updated_by_name ?? "—"} · {fmtDate(doc.updated_at)} {fmtTime(doc.updated_at)}
+                  </div>
+                )}
               </div>
             </div>
 
@@ -206,6 +254,35 @@ export function DocumentDetailModal({
           </>
         )}
       </Modal>
+
+      {doc && isReceipt && editing && (
+        <ReceiptEditModal
+          doc={doc}
+          onClose={() => setEditing(false)}
+          onSaved={() => {
+            setEditing(false);
+            setReload((n) => n + 1);
+            router.refresh();
+          }}
+        />
+      )}
+
+      {doc && isReceipt && (
+        <ConfirmDialog
+          open={confirmDelete}
+          onOpenChange={setConfirmDelete}
+          title="Hapus penerimaan ini?"
+          message={
+            <>
+              Penerimaan <strong>{doc.doc_no}</strong> ({fmtInt(doc.lines.length)} SKU · {fmtInt(totalQty)} pcs) akan dihapus
+              permanen. Stock dikurangi lagi{doc.po_no ? <> dan sisa di PO <strong>{doc.po_no}</strong> kembali terbuka</> : null}.
+            </>
+          }
+          confirmLabel="Hapus Penerimaan"
+          tone="neg"
+          onConfirm={doDelete}
+        />
+      )}
 
       {doc && (
         <ConfirmDialog

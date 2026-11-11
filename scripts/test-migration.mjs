@@ -19,19 +19,57 @@ s as (insert into skus(product_id, code, color, size, launch_date) select id, 'S
 select id from s`);
 const sku = r.rows[0].id;
 await db.query(`select set_config('request.jwt.claims', '{"email":"admin@prettybasic.id","user_metadata":{"full_name":"Jose Putra"}}', false)`);
-const k = (await db.query(`select id from konveksi limit 1`)).rows[0].id;
-const b = (await db.query(`select create_production_batch($1,$2,'2026-10-17','2026-10-31','in_production',null,$3) id`, [ (await db.query(`select next_batch_no(2026) n`)).rows[0].n, k, JSON.stringify([{sku_id: sku, qty_suggested: 10, qty_planned: 10}])])).rows[0].id;
+const k = (await db.query(`select id from vendors limit 1`)).rows[0].id;
+const b = (await db.query(`select save_purchase_order(null,$1,$2,'2026-10-17','2026-10-31','open',null,$3) id`, [ (await db.query(`select next_po_no(2026) n`)).rows[0].n, k, JSON.stringify([{sku_id: sku, qty_suggested: 10, qty: 10, unit_price: 50000}])])).rows[0].id;
 console.log((await db.query(`select * from v_sku_in_production`)).rows);
 await db.query(`select create_stock_document('in','adjustment_in','2026-10-01',null,null,'awal','manual',$1)`, [JSON.stringify([{sku_id: sku, qty: 5},{sku_id: sku, qty: 3}])]);
 await db.query(`select create_stock_document('out','sales','2026-10-02','shopee',null,null,'manual',$1)`, [JSON.stringify([{sku_id: sku, qty: 2}])]);
 await db.query(`select create_stock_document('in','produksi','2026-10-03',null,$2,null,'manual',$1)`, [JSON.stringify([{sku_id: sku, qty: 10}]), b]);
-console.log((await db.query(`select * from v_sku_stock`)).rows, (await db.query(`select status from production_batches`)).rows, (await db.query(`select * from v_sku_in_production`)).rows);
-console.log((await db.query(`select doc_no, created_by_name, sku_count, total_qty, product_names, batch_no from v_document_summary order by doc_no`)).rows);
-console.log((await db.query(`select * from v_batch_summary`)).rows.map(r=>[r.batch_no,r.qty_planned,r.qty_received,r.konveksi_name]));
+console.log((await db.query(`select * from v_sku_stock`)).rows, (await db.query(`select status from purchase_orders`)).rows, (await db.query(`select * from v_sku_in_production`)).rows);
+console.log((await db.query(`select doc_no, created_by_name, sku_count, total_qty, product_names, po_no, vendor_name from v_document_summary order by doc_no`)).rows);
+console.log((await db.query(`select * from v_po_summary`)).rows.map(r=>[r.po_no,r.qty_ordered,r.qty_received,r.vendor_name,r.total_amount,r.receipt_count]));
 console.log((await db.query(`select * from movement_totals('2026-10-01','2026-10-31')`)).rows, (await db.query(`select * from sku_movements('2026-10-01','2026-10-31')`)).rows, (await db.query(`select * from v_sku_monthly_sales`)).rows, (await db.query(`select * from v_sku_last_sale`)).rows);
 const d = (await db.query(`select id from stock_documents where type='sales'`)).rows[0].id;
 await db.query(`select void_stock_document($1,'salah input')`, [d]);
-console.log((await db.query(`select * from v_sku_stock`)).rows, (await db.query(`select next_batch_no(2026) n`)).rows);
+console.log((await db.query(`select * from v_sku_stock`)).rows, (await db.query(`select next_po_no(2026) n`)).rows);
+
+{
+  // ── Purchase Order & Penerimaan ───────────────────
+  const assert = (cond, msg) => { if (!cond) { console.error('FAIL:', msg); process.exit(1); } };
+  const stock = async () => (await db.query(`select stock from v_sku_stock where sku_id=$1`, [sku])).rows[0].stock;
+  const status = async (id) => (await db.query(`select status from purchase_orders where id=$1`, [id])).rows[0]?.status;
+  const throws = async (q, args) => { try { await db.query(q, args); return false; } catch { return true; } };
+  assert(await status(b) === 'done', 'PO selesai otomatis setelah diterima penuh');
+  const s0 = await stock();
+  const rec = (await db.query(`select id from stock_documents where type='produksi'`)).rows[0].id;
+  // edit penerimaan: 10 → 6 → PO kembali open, stock turun 4
+  await db.query(`select update_receipt($1,'2026-10-04','edit',$2)`, [rec, JSON.stringify([{sku_id: sku, qty: 6}])]);
+  assert(await status(b) === 'open', 'PO dibuka lagi setelah penerimaan dikurangi');
+  assert(await stock() === s0 - 4, 'stock ikut turun');
+  assert((await db.query(`select in_production from v_sku_in_production`)).rows[0].in_production === 4, 'sisa 4 dalam PO');
+  // edit PO: qty di bawah yang sudah diterima ditolak
+  assert(await throws(`select save_purchase_order($1,'PO-2026-001',$2,'2026-10-17',null,'open',null,$3)`, [b, k, JSON.stringify([{sku_id: sku, qty: 5}])]), 'qty < diterima ditolak');
+  await db.query(`select save_purchase_order($1,'PO-2026-001',$2,'2026-10-17','2026-11-01','open','ubah',$3)`, [b, k, JSON.stringify([{sku_id: sku, qty: 6, unit_price: 45000}])]);
+  assert(await status(b) === 'done', 'qty PO = diterima → selesai');
+  // hapus PO dengan penerimaan aktif ditolak
+  assert(await throws(`select delete_purchase_order($1)`, [b]), 'hapus PO dengan penerimaan ditolak');
+  // hapus penerimaan → stock kembali, PO open
+  await db.query(`select delete_receipt($1)`, [rec]);
+  assert(await stock() === s0 - 10, 'stock kembali setelah penerimaan dihapus');
+  assert(await status(b) === 'open', 'PO open lagi');
+  // tidak boleh hapus dokumen non-penerimaan
+  assert(await throws(`select delete_receipt($1)`, [d]), 'hapus sales ditolak');
+  // terima dari PO draft ditolak
+  const draft = (await db.query(`select save_purchase_order(null,'PO-2026-099',$1,'2026-10-20',null,'draft',null,$2) id`, [k, JSON.stringify([{sku_id: sku, qty: 3}])])).rows[0].id;
+  assert(await throws(`select create_stock_document('in','produksi','2026-10-21',null,$2,null,'manual',$1)`, [JSON.stringify([{sku_id: sku, qty: 1}]), draft]), 'terima dari draft ditolak');
+  assert((await db.query(`select in_production from v_sku_in_production`)).rows[0].in_production === 6, 'draft tidak dihitung dalam PO');
+  await db.query(`select save_purchase_order($1,'PO-2026-099',$2,'2026-10-20',null,'open',null,$3)`, [draft, k, JSON.stringify([{sku_id: sku, qty: 3}])]);
+  assert(await status(draft) === 'open', 'draft dikirim');
+  await db.query(`update purchase_orders set status='cancelled' where id=$1`, [draft]);
+  await db.query(`select delete_purchase_order($1)`, [draft]);
+  assert(!(await status(draft)), 'PO tanpa penerimaan terhapus');
+  console.log('PO OK', (await db.query(`select name, po_count, po_open_count from v_vendor_summary`)).rows);
+}
 
 // Stock opname: stock 16 → hitung fisik 12 → Adjustment − 4
 console.log('opname', (await db.query(`select create_stock_opname('2026-10-05','gudang',$1) r`, [JSON.stringify([{sku_id: sku, counted: 12}])])).rows[0].r);
@@ -103,4 +141,22 @@ console.log('packing OK', (await db.query(`select * from pack_storage_summary()`
   const r2 = (await db.query(`select (save_pack_record('10000000-0000-0000-0000-000000000010', 'BUDI001', 'Shopee', 'selesai', now(), now(), 30)).*`)).rows[0];
   if (r2.packer_name !== 'Budi') { console.error('FAIL: default nama akun'); process.exit(1); }
   console.log('packers OK');
+}
+{
+  // ── Pengiriman kain ───────────────────────────────
+  const assert = (cond, msg) => { if (!cond) { console.error('FAIL:', msg); process.exit(1); } };
+  await db.query(`select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-00000000000a', false)`);
+  const v = (await db.query(`select id from vendors limit 1`)).rows[0].id;
+  const no = (await db.query(`select next_sj_no(2026) n`)).rows[0].n;
+  assert(no === 'SJ-2026-0001', 'nomor SJ');
+  const id = (await db.query(`select save_fabric_shipment(null,$1,'2026-11-11',$2,null,'Pak Budi',' b 1234 xy ',null,$3) id`, [no, v, JSON.stringify([{fabric_type:'Rayon',color:'Hitam',qty_kg:25.555,roll_count:2},{fabric_type:'Linen',color:'Putih',qty_kg:10}])])).rows[0].id;
+  let s = (await db.query(`select * from v_fabric_shipment_summary where id=$1`, [id])).rows[0];
+  assert(Number(s.total_kg) === 35.56 && s.total_roll === 2 && s.line_count === 2 && s.vehicle_no === 'B 1234 XY', 'ringkasan SJ');
+  await db.query(`select save_fabric_shipment($1,$2,'2026-11-11',$3,null,null,null,'edit',$4)`, [id, no, v, JSON.stringify([{fabric_type:'Rayon',color:'Hitam',qty_kg:30}])]);
+  s = (await db.query(`select * from v_fabric_shipment_summary where id=$1`, [id])).rows[0];
+  assert(Number(s.total_kg) === 30 && s.line_count === 1, 'edit SJ');
+  let bad = false; try { await db.query(`select save_fabric_shipment(null,'SJ-X','2026-11-11',$1,null,null,null,null,$2)`, [v, JSON.stringify([{fabric_type:'Rayon',color:'',qty_kg:1}])]); } catch { bad = true; }
+  assert(bad, 'warna kosong ditolak');
+  await db.query(`delete from fabric_shipments where id=$1`, [id]);
+  console.log('kain OK');
 }

@@ -33,8 +33,8 @@ function Kv({ label, value, unit, tone }: { label: string; value: string; unit?:
   );
 }
 
-export function movementTitle(m: Pick<SkuMovement, "type" | "channel" | "batch_no">) {
-  if (m.type === "produksi" && m.batch_no) return m.batch_no;
+export function movementTitle(m: Pick<SkuMovement, "type" | "channel" | "po_no">) {
+  if (m.type === "produksi" && m.po_no) return `Terima ${m.po_no}`;
   if (m.type === "sales" && m.channel) return `Sales ${CHANNEL_LABEL[m.channel]}`;
   return TYPE_LABEL[m.type];
 }
@@ -119,7 +119,7 @@ export function SkuDetailModal({
           </div>
           <div className="text-grey-1">
             Rumus forecast: {FORECAST_METHOD_LABEL[row.method]}
-            {row.inProduction > 0 && <> · Sedang diproduksi {fmtInt(row.inProduction)} pcs</>}
+            {row.inProduction > 0 && <> · Dalam PO (belum datang) {fmtInt(row.inProduction)} pcs</>}
           </div>
         </div>
         <div className="shrink-0">

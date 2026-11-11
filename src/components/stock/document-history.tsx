@@ -26,7 +26,7 @@ import { fmtDate, fmtDec, fmtInt, fmtMonthYear, fmtSigned, fmtTime } from "@/lib
 import { cn } from "@/lib/cn";
 import type { DocumentHistoryData, DocumentSummary } from "@/lib/data/documents";
 
-const COLS = 7;
+const COLS = 8;
 
 export function SourceBadge({ source }: { source: string }) {
   const label = source === "excel" ? "Excel" : source === "seed" ? "Import awal" : source === "opname" ? "Opname" : "Manual";
@@ -41,7 +41,8 @@ function searchText(d: DocumentSummary) {
   return [
     d.doc_no,
     d.note ?? "",
-    d.batch_no ?? "",
+    d.po_no ?? "",
+    d.vendor_name ?? "",
     d.channel ? CHANNEL_LABEL[d.channel] : "",
     d.created_by_name ?? "",
     TYPE_LABEL[d.type],
@@ -51,14 +52,17 @@ function searchText(d: DocumentSummary) {
     .toLowerCase();
 }
 
-export function DocumentHistory({ data }: { data: DocumentHistoryData }) {
+/**
+ * Riwayat Barang Masuk / Barang Keluar. `receipts` = halaman Penerimaan Barang (hanya dokumen Penerimaan PO).
+ */
+export function DocumentHistory({ data, receipts = false }: { data: DocumentHistoryData; receipts?: boolean }) {
   const router = useRouter();
   const pathname = usePathname();
   const { openStockModal, openUpload } = useAppData();
   const [isPending, startTransition] = useTransition();
 
   const isIn = data.direction === "in";
-  const noun = isIn ? "barang masuk" : "barang keluar";
+  const noun = receipts ? "penerimaan barang" : isIn ? "barang masuk" : "barang keluar";
   const types = isIn ? IN_TYPES : OUT_TYPES;
 
   const [search, setSearch] = useState("");
@@ -112,7 +116,7 @@ export function DocumentHistory({ data }: { data: DocumentHistoryData }) {
     setPage(0);
   }
 
-  const openNew = () => openStockModal({ direction: data.direction });
+  const openNew = () => openStockModal(receipts ? { direction: "in", type: "produksi" } : { direction: data.direction });
   const signed = (qty: number) => fmtSigned(isIn ? qty : -qty);
   const { stats } = data;
   const damagePct =
@@ -121,10 +125,12 @@ export function DocumentHistory({ data }: { data: DocumentHistoryData }) {
   return (
     <>
       <PageHeader
-        title={isIn ? "Barang Masuk" : "Barang Keluar"}
+        title={receipts ? "Penerimaan Barang" : isIn ? "Barang Masuk" : "Barang Keluar"}
         sub={
-          isIn
-            ? "Catatan stock masuk dari produksi, retur, atau adjustment"
+          receipts
+            ? "Barang yang datang dari vendor berdasarkan PO · otomatis masuk ke stock & mutasi"
+            : isIn
+            ? "Catatan stock masuk dari penerimaan PO, retur, atau adjustment"
             : "Catatan stock keluar dari sales, damage, giveaway, atau adjustment"
         }
       />
@@ -160,11 +166,11 @@ export function DocumentHistory({ data }: { data: DocumentHistoryData }) {
         />
         {isIn ? (
           <StatCard
-            label="Batch Pending"
+            label="PO Aktif"
             tone="warn"
-            value={fmtInt(stats.pendingBatches ?? 0)}
-            sub="Batch masih diproduksi, belum diterima penuh"
-            onClick={() => router.push("/batch")}
+            value={fmtInt(stats.openPos ?? 0)}
+            sub="PO yang barangnya belum datang semua"
+            onClick={() => router.push("/po")}
           />
         ) : (
           <StatCard
@@ -178,15 +184,21 @@ export function DocumentHistory({ data }: { data: DocumentHistoryData }) {
       </StatGrid>
 
       <Panel
-        title={isIn ? "Riwayat Barang Masuk" : "Riwayat Barang Keluar"}
-        sub="1 catatan bisa berisi banyak SKU · Klik baris untuk lihat detail"
+        title={receipts ? "Daftar Penerimaan Barang" : isIn ? "Riwayat Barang Masuk" : "Riwayat Barang Keluar"}
+        sub={
+          receipts
+            ? "Klik baris untuk lihat rincian, cetak bukti penerimaan, edit, atau hapus"
+            : "1 catatan bisa berisi banyak SKU · Klik baris untuk lihat detail"
+        }
         actions={
           <>
-            <Button onClick={() => openUpload(isIn ? "masuk" : "keluar")}>
-              <Upload className="h-3.5 w-3.5" /> Upload Excel
-            </Button>
+            {!receipts && (
+              <Button onClick={() => openUpload(isIn ? "masuk" : "keluar")}>
+                <Upload className="h-3.5 w-3.5" /> Upload Excel
+              </Button>
+            )}
             <Button variant={isIn ? "pos" : "neg"} onClick={openNew}>
-              {isIn ? "+ Catat Barang Masuk" : "− Catat Barang Keluar"}
+              {receipts ? "+ Terima Barang dari PO" : isIn ? "+ Catat Barang Masuk" : "− Catat Barang Keluar"}
             </Button>
           </>
         }
@@ -198,8 +210,10 @@ export function DocumentHistory({ data }: { data: DocumentHistoryData }) {
               setSearch(v);
               setPage(0);
             }}
-            placeholder={isIn ? "Cari catatan, batch, produk..." : "Cari catatan, channel, produk..."}
+            placeholder={isIn ? "Cari no, PO, vendor, produk..." : "Cari catatan, channel, produk..."}
           />
+          {!receipts && (
+          <>
           <FilterChip
             active={typeFilter === "all"}
             count={baseFiltered.length}
@@ -223,6 +237,8 @@ export function DocumentHistory({ data }: { data: DocumentHistoryData }) {
               {TYPE_LABEL[t]}
             </FilterChip>
           ))}
+          </>
+          )}
           <div className="flex w-full flex-wrap items-center gap-2 sm:ml-auto sm:w-auto sm:flex-nowrap">
             <input
               type="date"
@@ -266,9 +282,10 @@ export function DocumentHistory({ data }: { data: DocumentHistoryData }) {
         <table className="data-table">
           <thead>
             <tr>
+              <th>{receipts ? "No Penerimaan" : "No Catatan"}</th>
               <th>Tanggal</th>
               <th>Tipe</th>
-              <th>{isIn ? "Ref Batch" : "Channel"}</th>
+              <th>{isIn ? "No PO / Vendor" : "Channel"}</th>
               <th>SKU dalam Catatan</th>
               <th className="num">Total Qty</th>
               <th>Catatan</th>
@@ -303,6 +320,9 @@ export function DocumentHistory({ data }: { data: DocumentHistoryData }) {
                 return (
                   <tr key={d.id} className={cn("clickable", voided && "text-grey-2")} onClick={() => setDetailId(d.id)}>
                     <td className="whitespace-nowrap">
+                      <span className={cn("num text-[12.5px] font-semibold", voided ? "text-grey-2" : "text-ink-2")}>{d.doc_no}</span>
+                    </td>
+                    <td className="whitespace-nowrap">
                       <div className={cn("font-medium", voided ? "text-grey-2" : "text-ink-2")}>{fmtDate(d.doc_date)}</div>
                       <div className="num text-[11.5px] text-grey-1">{fmtTime(d.created_at)}</div>
                     </td>
@@ -314,8 +334,11 @@ export function DocumentHistory({ data }: { data: DocumentHistoryData }) {
                     </td>
                     <td className="whitespace-nowrap">
                       {isIn ? (
-                        d.batch_no ? (
-                          <strong className={voided ? "text-grey-2" : "text-primary-2"}>{d.batch_no}</strong>
+                        d.po_no ? (
+                          <>
+                            <strong className={voided ? "text-grey-2" : "text-primary-2"}>{d.po_no}</strong>
+                            {d.vendor_name && <div className="text-[11.5px] text-grey-1">{d.vendor_name}</div>}
+                          </>
                         ) : (
                           <span className="text-grey-2">—</span>
                         )

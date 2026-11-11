@@ -12,7 +12,7 @@ export type MovementType =
   | "adjustment_out"
   | "transfer_out";
 export type SalesChannel = "shopee" | "tiktok" | "instagram" | "website" | "offline" | "lainnya";
-export type BatchStatus = "draft" | "in_production" | "done" | "cancelled";
+export type PoStatus = "draft" | "open" | "done" | "cancelled";
 
 /** Warna badge — sesuai .badge di mockup. */
 export type BadgeTone = "pos" | "warn" | "neg" | "info" | "yellow" | "purple" | "grey";
@@ -32,7 +32,7 @@ export const STATUS_RULES: { status: PpicStatus; meaning: string; action: string
   { status: "STOP", meaning: "Forecast di bawah batas minimal + stock 0", action: "SKU tidak diproduksi lagi" },
   { status: "DEADSTOCK", meaning: "Masih ada stock, tidak ada sales dalam batas hari deadstock", action: "Diskon / bundling / live selling" },
   { status: "HABIS", meaning: "Stock 0 padahal masih laku", action: "Produksi segera (prioritas 1), pertimbangkan pre-order" },
-  { status: "PRODUKSI", meaning: "Stock + sedang produksi ≤ Min Stock", action: "Buat batch produksi sebesar Saran minggu ini" },
+  { status: "PRODUKSI", meaning: "Stock + dalam PO (belum datang) ≤ Min Stock", action: "Buat PO ke vendor sebesar Saran minggu ini" },
   { status: "OVERSTOCK", meaning: "Stock kebanyakan: di atas Max × batas overstock, atau penjualan di bawah batas minimal", action: "Jangan produksi, habiskan stock / promo" },
   { status: "AMAN", meaning: "Stock di atas Min Stock", action: "Pantau di review berikutnya" },
 ];
@@ -42,7 +42,7 @@ export const OUT_TYPES: MovementType[] = ["sales", "damage", "giveaway", "adjust
 
 /** Label panjang untuk combobox di form. */
 export const TYPE_OPTION_LABEL: Record<MovementType, string> = {
-  produksi: "Produksi Selesai (dari konveksi)",
+  produksi: "Penerimaan PO (dari vendor)",
   retur: "Retur dari Customer",
   adjustment_in: "Adjustment + (Stock Opname)",
   transfer_in: "Transfer Masuk",
@@ -55,7 +55,7 @@ export const TYPE_OPTION_LABEL: Record<MovementType, string> = {
 
 /** Label pendek untuk badge & chip. */
 export const TYPE_LABEL: Record<MovementType, string> = {
-  produksi: "Produksi",
+  produksi: "Penerimaan PO",
   retur: "Retur",
   adjustment_in: "Adjustment +",
   transfer_in: "Transfer",
@@ -89,23 +89,32 @@ export const CHANNEL_LABEL: Record<SalesChannel, string> = {
   lainnya: "Lainnya",
 };
 
-export const BATCH_STATUS_LABEL: Record<BatchStatus, string> = {
+export const PO_STATUS_LABEL: Record<PoStatus, string> = {
   draft: "Draft",
-  in_production: "Diproduksi",
+  open: "Dipesan",
   done: "Selesai",
   cancelled: "Dibatalkan",
 };
 
-export const BATCH_STATUS_TONE: Record<BatchStatus, BadgeTone> = {
+export const PO_STATUS_TONE: Record<PoStatus, BadgeTone> = {
   draft: "grey",
-  in_production: "warn",
+  open: "warn",
   done: "pos",
   cancelled: "neg",
 };
 
+/** Label status untuk tampilan: PO "Dipesan" yang sudah ada penerimaan → "Diterima Sebagian". */
+export function poStatusDisplay(status: PoStatus, qtyReceived: number): { label: string; tone: BadgeTone } {
+  if (status === "open" && qtyReceived > 0) return { label: "Diterima Sebagian", tone: "info" };
+  return { label: PO_STATUS_LABEL[status], tone: PO_STATUS_TONE[status] };
+}
+
 /** Nilai yang diterima di kolom Excel (Bagian 10). Key dalam huruf kecil tanpa spasi. */
 export const EXCEL_IN_TYPES: Record<string, MovementType> = {
   produksi: "produksi",
+  penerimaan: "produksi",
+  penerimaanpo: "produksi",
+  po: "produksi",
   retur: "retur",
   adjustment: "adjustment_in",
   transfer: "transfer_in",

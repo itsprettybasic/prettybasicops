@@ -80,3 +80,12 @@ export function fmtMonthYear(d: string | Date): string {
 export function fmtMonthShort(d: string | Date): string {
   return formatInTimeZone(toDate(d), TIMEZONE, "MMM", { locale: localeId });
 }
+
+const kgFormat = new Intl.NumberFormat("id-ID", { maximumFractionDigits: 2 });
+
+/** Berat kg: 12,5 / 1.250,75 */
+export function fmtKg(n: number | string | null | undefined): string {
+  if (n === null || n === undefined || n === "") return "—";
+  const v = Number(n);
+  return Number.isFinite(v) ? kgFormat.format(v) : "—";
+}

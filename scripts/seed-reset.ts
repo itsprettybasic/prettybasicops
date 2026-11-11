@@ -1,5 +1,5 @@
 /**
- * Hapus data demo (produk kategori 'demo', dokumen source 'seed', batch note 'seed-demo').
+ * Hapus data demo (produk kategori 'demo', dokumen source 'seed', PO note 'seed-demo').
  * Hanya jalan jika ALLOW_RESET=true dan butuh SUPABASE_SERVICE_ROLE_KEY (tidak ada policy delete untuk user biasa).
  * Alternatif tanpa service key: jalankan supabase/reset-demo.sql di SQL Editor.
  */
@@ -21,11 +21,11 @@ async function main() {
 
   const steps: [string, () => PromiseLike<{ error: { message: string } | null }>][] = [
     ["dokumen seed", () => supabase.from("stock_documents").delete().eq("source", "seed")],
-    ["batch demo", () => supabase.from("production_batches").delete().eq("note", "seed-demo")],
+    ["PO demo", () => supabase.from("purchase_orders").delete().eq("note", "seed-demo")],
   ];
   if (skuIds.length) {
     steps.push(["baris SKU demo", () => supabase.from("stock_document_lines").delete().in("sku_id", skuIds)]);
-    steps.push(["baris batch SKU demo", () => supabase.from("production_batch_lines").delete().in("sku_id", skuIds)]);
+    steps.push(["baris PO SKU demo", () => supabase.from("purchase_order_lines").delete().in("sku_id", skuIds)]);
     steps.push(["SKU demo", () => supabase.from("skus").delete().in("id", skuIds)]);
   }
   if (productIds.length) steps.push(["produk demo", () => supabase.from("products").delete().in("id", productIds)]);

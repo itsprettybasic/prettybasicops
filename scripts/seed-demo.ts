@@ -1,7 +1,7 @@
 /**
  * Data demo supaya semua halaman langsung terisi (Bagian 12.1).
  * Menghasilkan: 7 produk spec + 1 produk baru, riwayat sales harian ±4 bulan per channel, damage/giveaway/retur,
- * batch produksi selesai & 1 batch masih diproduksi (sebagian sudah diterima), stock awal via Adjustment +.
+ * PO selesai & 1 PO masih dipesan (sebagian sudah diterima), stock awal via Adjustment +.
  * Target stock akhir diatur supaya semua status PPIC muncul (HABIS, PRODUKSI, AMAN, OVERSTOCK, SLOW, DEAD, STOP, BARU).
  *
  * Jalankan: npm run seed:demo   (hapus dulu dengan npm run seed:reset kalau mau ulang)
@@ -105,7 +105,7 @@ interface Doc {
   type: string;
   doc_date: string;
   channel: string | null;
-  batch_id: string | null;
+  po_id: string | null;
   note: string | null;
   source: "seed";
   created_at: string;
@@ -202,7 +202,7 @@ async function main() {
       type,
       doc_date: date,
       channel: null,
-      batch_id: null,
+      po_id: null,
       note: null,
       source: "seed",
       created_at,
@@ -257,12 +257,12 @@ async function main() {
     for (let k = 0; k < randInt(1, 2); k++) addLine(doc, pick(activeOn(date)).id, 1);
   }
 
-  // ── Batch produksi ──
-  const { data: konveksi, error: kErr } = await supabase.from("konveksi").select("id, name").order("name");
-  if (kErr || !konveksi?.length) throw new Error(`Konveksi belum ada: ${kErr?.message ?? "jalankan migration dulu"}`);
+  // ── Purchase Order ──
+  const { data: konveksi, error: kErr } = await supabase.from("vendors").select("id, name").order("name");
+  if (kErr || !konveksi?.length) throw new Error(`Vendor belum ada: ${kErr?.message ?? "tambah vendor dulu"}`);
   const year = today.slice(0, 4);
-  const { data: lastBatch } = await supabase.from("production_batches").select("batch_no").like("batch_no", `BATCH-${year}-%`).order("batch_no", { ascending: false }).limit(1);
-  let batchSeq = lastBatch?.[0] ? Number(lastBatch[0].batch_no.split("-")[2]) : 30;
+  const { data: lastBatch } = await supabase.from("purchase_orders").select("po_no").like("po_no", `PO-${year}-%`).order("po_no", { ascending: false }).limit(1);
+  let batchSeq = lastBatch?.[0] ? Number(lastBatch[0].po_no.split("-")[2]) : 30;
 
   const batches: object[] = [];
   const batchLines: object[] = [];
@@ -279,20 +279,20 @@ async function main() {
     const k = pick(konveksi);
     const batchId = randomUUID();
     batchSeq++;
-    const batchNo = `BATCH-${year}-${String(batchSeq).padStart(3, "0")}`;
+    const batchNo = `PO-${year}-${String(batchSeq).padStart(3, "0")}`;
     const chosen = [...producible].sort(() => rand() - 0.5).slice(0, randInt(5, 9));
-    const recvDoc = newDoc("in", "produksi", received, at(received, randInt(9, 15)), { batch_id: batchId, note: `${k.name} selesai` });
+    const recvDoc = newDoc("in", "produksi", received, at(received, randInt(9, 15)), { po_id: batchId, note: `${k.name} selesai` });
     for (const s of chosen) {
       const qty = Math.max(6, Math.round(salesBetween(s.id, received, shift(received, 21)) * 0.6));
-      batchLines.push({ batch_id: batchId, sku_id: s.id, qty_suggested: qty, qty_planned: qty });
+      batchLines.push({ po_id: batchId, sku_id: s.id, qty_suggested: qty, qty });
       addLine(recvDoc, s.id, qty);
     }
     batches.push({
       id: batchId,
-      batch_no: batchNo,
-      konveksi_id: k.id,
-      sent_date: sent,
-      est_done_date: shift(sent, 14),
+      po_no: batchNo,
+      vendor_id: k.id,
+      po_date: sent,
+      expected_date: shift(sent, 14),
       status: "done",
       note: "seed-demo",
       done_at: at(received, 16),
@@ -308,19 +308,19 @@ async function main() {
     const batchId = randomUUID();
     batchSeq++;
     const chosen = plans.filter((s) => s.category === "habis" || s.category === "produksi").slice(0, 5);
-    const partial = newDoc("in", "produksi", shift(today, -1), at(shift(today, -1), 14), { batch_id: batchId, note: `${k.name} kirim sebagian` });
+    const partial = newDoc("in", "produksi", shift(today, -1), at(shift(today, -1), 14), { po_id: batchId, note: `${k.name} kirim sebagian` });
     chosen.forEach((s, idx) => {
       const qty = Math.max(12, Math.round(s.monthly * 1.1));
-      batchLines.push({ batch_id: batchId, sku_id: s.id, qty_suggested: qty, qty_planned: qty });
+      batchLines.push({ po_id: batchId, sku_id: s.id, qty_suggested: qty, qty });
       if (idx < 2) addLine(partial, s.id, Math.floor(qty / 2));
     });
     batches.push({
       id: batchId,
-      batch_no: `BATCH-${year}-${String(batchSeq).padStart(3, "0")}`,
-      konveksi_id: k.id,
-      sent_date: sent,
-      est_done_date: shift(sent, 14),
-      status: "in_production",
+      po_no: `PO-${year}-${String(batchSeq).padStart(3, "0")}`,
+      vendor_id: k.id,
+      po_date: sent,
+      expected_date: shift(sent, 14),
+      status: "open",
       note: "seed-demo",
       created_by_name: adminName,
       created_at: at(sent, 10),
@@ -382,15 +382,15 @@ async function main() {
   }
 
   // ── Insert ──
-  console.log(`  ${products.length} produk · ${plans.length} SKU · ${batches.length} batch · ${docs.length} catatan`);
+  console.log(`  ${products.length} produk · ${plans.length} SKU · ${batches.length} PO · ${docs.length} catatan`);
   await insertAll(supabase, "products", products);
   await insertAll(
     supabase,
     "skus",
     plans.map((s) => ({ id: s.id, product_id: s.product_id, code: s.code, color: s.color, size: s.size, launch_date: s.launch_date, unit_cost: s.unit_cost })),
   );
-  await insertAll(supabase, "production_batches", batches);
-  await insertAll(supabase, "production_batch_lines", batchLines);
+  await insertAll(supabase, "purchase_orders", batches);
+  await insertAll(supabase, "purchase_order_lines", batchLines);
   await insertAll(
     supabase,
     "stock_documents",

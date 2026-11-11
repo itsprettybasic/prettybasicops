@@ -35,7 +35,7 @@ export default async function MutasiPage({
       supabase
         .from("v_document_summary")
         .select(
-          "id, doc_no, direction, type, doc_date, channel, batch_no, note, source, created_at, created_by_name, sku_count, total_qty, product_names",
+          "id, doc_no, direction, type, doc_date, channel, po_no, vendor_name, note, source, created_at, created_by_name, sku_count, total_qty, product_names",
         )
         .is("voided_at", null)
         .gte("doc_date", from)

@@ -19,7 +19,7 @@ import {
   type SalesChannel,
 } from "@/lib/constants";
 import { fmtInt, fmtSigned } from "@/lib/format";
-import { createStockDocument, getOpenBatches, type OpenBatch } from "@/app/actions/stock";
+import { createStockDocument, getOpenPos, type OpenPo } from "@/app/actions/stock";
 import { cn } from "@/lib/cn";
 
 interface Line {
@@ -46,16 +46,16 @@ export function StockDocumentModal({
   const { today, skuOptions, rowById } = useAppData();
   const isIn = preset.direction === "in";
 
-  // Dibuka dari SKU tertentu → default Adjustment + (Produksi butuh Ref Batch yang akan mengganti isi baris)
+  // Dibuka dari SKU tertentu → default Adjustment + (Penerimaan PO butuh No PO yang akan mengganti isi baris)
   const [type, setType] = useState<MovementType>(
-    preset.type ?? (isIn ? (preset.skuId && !preset.batchId ? "adjustment_in" : "produksi") : "sales"),
+    preset.type ?? (isIn ? (preset.skuId && !preset.poId ? "adjustment_in" : "produksi") : "sales"),
   );
   const [date, setDate] = useState(today);
   const [channel, setChannel] = useState<SalesChannel | null>(isIn ? null : "shopee");
-  const [batchId, setBatchId] = useState<string | null>(preset.batchId ?? null);
+  const [poId, setPoId] = useState<string | null>(preset.poId ?? null);
   const [note, setNote] = useState("");
   const [lines, setLines] = useState<Line[]>(() => [newLine(preset.skuId ?? null)]);
-  const [batches, setBatches] = useState<OpenBatch[] | null>(null);
+  const [pos, setPos] = useState<OpenPo[] | null>(null);
   const [saving, setSaving] = useState(false);
   const [confirmMinus, setConfirmMinus] = useState(false);
   const [submitted, setSubmitted] = useState(false);
@@ -66,20 +66,20 @@ export function StockDocumentModal({
 
   useEffect(() => {
     if (!isIn || !open) return;
-    getOpenBatches().then((res) => {
-      if (res.ok) setBatches(res.data);
-      else toast.error(`Gagal memuat batch: ${res.error}`);
+    getOpenPos().then((res) => {
+      if (res.ok) setPos(res.data);
+      else toast.error(`Gagal memuat PO: ${res.error}`);
     });
   }, [isIn, open]);
 
-  // Preset batch (dari halaman Batch → Terima Barang): isi semua SKU sisa
-  const appliedPresetBatch = useRef(false);
+  // Preset PO (dari detail PO → Terima Barang): isi semua SKU sisa
+  const appliedPresetPo = useRef(false);
   useEffect(() => {
-    if (!batches || !preset.batchId || appliedPresetBatch.current) return;
-    appliedPresetBatch.current = true;
-    applyBatch(preset.batchId);
+    if (!pos || !preset.poId || appliedPresetPo.current) return;
+    appliedPresetPo.current = true;
+    applyPo(preset.poId);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [batches, preset.batchId]);
+  }, [pos, preset.poId]);
 
   useEffect(() => {
     const target = focusNext.current;
@@ -89,19 +89,24 @@ export function StockDocumentModal({
     el?.focus();
   });
 
-  function applyBatch(id: string | null) {
-    setBatchId(id);
-    const batch = batches?.find((b) => b.id === id);
-    if (!batch) return;
-    setLines(batch.remaining.length ? batch.remaining.map((r) => newLine(r.sku_id, String(r.qty))) : [newLine()]);
+  function applyPo(id: string | null) {
+    setPoId(id);
+    const po = pos?.find((b) => b.id === id);
+    if (!po) return;
+    const open = po.lines.filter((l) => l.remaining > 0);
+    setLines(open.length ? open.map((r) => newLine(r.sku_id, String(r.remaining))) : [newLine()]);
   }
+
+  const selectedPo = pos?.find((p) => p.id === poId) ?? null;
+  const poLineBySku = useMemo(() => new Map((selectedPo?.lines ?? []).map((l) => [l.sku_id, l])), [selectedPo]);
 
   const typeOptions: ComboOption[] = (isIn ? IN_TYPES : OUT_TYPES).map((t) => ({ value: t, label: TYPE_OPTION_LABEL[t] }));
   const channelOptions: ComboOption[] = CHANNELS.map((c) => ({ value: c, label: CHANNEL_LABEL[c] }));
-  const batchOptions: ComboOption[] = (batches ?? []).map((b) => ({
+  const poOptions: ComboOption[] = (pos ?? []).map((b) => ({
     value: b.id,
-    label: b.batch_no,
-    sublabel: `${b.konveksi_name} · sisa ${fmtInt(b.remaining.reduce((s, r) => s + r.qty, 0))} pcs`,
+    label: b.po_no,
+    sublabel: `${b.vendor_name} · sisa ${fmtInt(b.lines.reduce((s, r) => s + r.remaining, 0))} pcs`,
+    keywords: b.vendor_name,
   }));
 
   const parsed = lines.map((l) => {
@@ -125,7 +130,7 @@ export function StockDocumentModal({
   const totalQty = filled.reduce((s, l) => s + (l.qtyNum ?? 0), 0);
   const overStock = isIn ? [] : parsed.filter((l) => l.row && l.qtyNum && l.qtyNum > l.row.stock);
   const channelRequired = type === "sales";
-  const batchRequired = type === "produksi";
+  const poRequired = type === "produksi";
 
   const errors: string[] = [];
   if (filled.length === 0) errors.push("Isi minimal 1 SKU dengan qty.");
@@ -133,7 +138,7 @@ export function StockDocumentModal({
   if (parsed.some((l) => !l.skuId && l.qty)) errors.push("Ada baris yang SKU-nya belum dipilih.");
   if (duplicateOf.size > 0) errors.push("Ada SKU duplikat — gabungkan dulu.");
   if (channelRequired && !channel) errors.push("Channel wajib diisi untuk Sales.");
-  if (batchRequired && !batchId) errors.push("Pilih Ref Batch untuk Produksi Selesai.");
+  if (poRequired && !poId) errors.push("Pilih No PO untuk Penerimaan PO.");
   if (!date) errors.push("Tanggal wajib diisi.");
 
   function updateLine(key: number, patch: Partial<Line>) {
@@ -166,7 +171,7 @@ export function StockDocumentModal({
       type,
       doc_date: date,
       channel: isIn ? null : channel,
-      batch_id: batchRequired ? batchId : null,
+      po_id: poRequired ? poId : null,
       note: note.trim() || null,
       source: "manual",
       lines: filled.map((l) => ({ sku_id: l.skuId!, qty: l.qtyNum! })),
@@ -189,7 +194,7 @@ export function StockDocumentModal({
         open={open}
         onOpenChange={onOpenChange}
         wide
-        title={isIn ? "Catat Barang Masuk" : "Catat Barang Keluar"}
+        title={isIn ? (type === "produksi" ? "Terima Barang dari PO" : "Catat Barang Masuk") : "Catat Barang Keluar"}
         sub="Satu catatan bisa berisi banyak SKU · Stock langsung ter-update"
         footerLeft={
           <Button onClick={onSwitchToUpload}>
@@ -214,7 +219,7 @@ export function StockDocumentModal({
               onChange={(v) => {
                 if (!v) return;
                 setType(v as MovementType);
-                if (v !== "produksi") setBatchId(null);
+                if (v !== "produksi") setPoId(null);
               }}
             />
           </div>
@@ -224,15 +229,15 @@ export function StockDocumentModal({
           </div>
           {isIn ? (
             <div className="mb-4">
-              <label className="form-label">Ref Batch {batchRequired ? "" : "(khusus produksi)"}</label>
+              <label className="form-label">No PO {poRequired ? "" : "(khusus penerimaan PO)"}</label>
               <Combobox
-                options={batchOptions}
-                value={batchId}
-                onChange={(v) => applyBatch(v)}
-                disabled={!batchRequired}
-                invalid={submitted && batchRequired && !batchId}
-                placeholder={batches === null ? "Memuat..." : batchOptions.length ? "Pilih batch..." : "Tidak ada batch aktif"}
-                emptyText="Tidak ada batch yang sedang diproduksi"
+                options={poOptions}
+                value={poId}
+                onChange={(v) => applyPo(v)}
+                disabled={!poRequired}
+                invalid={submitted && poRequired && !poId}
+                placeholder={pos === null ? "Memuat..." : poOptions.length ? "Pilih PO..." : "Tidak ada PO aktif"}
+                emptyText="Tidak ada PO yang sedang dipesan"
               />
             </div>
           ) : (
@@ -255,7 +260,7 @@ export function StockDocumentModal({
             className="form-input"
             value={note}
             onChange={(e) => setNote(e.target.value)}
-            placeholder={isIn ? "Mis. Konveksi GKS selesai" : "Mis. Rekap sales Shopee hari ini"}
+            placeholder={isIn ? "Mis. Surat jalan vendor no. 123" : "Mis. Rekap sales Shopee hari ini"}
           />
         </div>
 
@@ -295,6 +300,15 @@ export function StockDocumentModal({
                       }}
                     />
                     {dup !== undefined && <div className="form-error">SKU sudah ada di baris {dup}</div>}
+                    {selectedPo && l.skuId && (() => {
+                      const pl = poLineBySku.get(l.skuId);
+                      if (!pl) return <div className="mt-0.5 text-[11px] font-semibold text-warn">Tidak ada di {selectedPo.po_no}</div>;
+                      return (
+                        <div className={cn("mt-0.5 text-[11px]", l.qtyNum && l.qtyNum > pl.remaining ? "font-semibold text-warn" : "text-grey-1")}>
+                          PO {fmtInt(pl.qty)} · sudah diterima {fmtInt(pl.received)} · sisa {fmtInt(pl.remaining)}
+                        </div>
+                      );
+                    })()}
                     {over && <div className="form-error">Melebihi stock (tersisa {fmtInt(l.row!.stock)})</div>}
                   </td>
                   <td className="num text-grey-1">{l.row ? fmtInt(l.row.stock) : "—"}</td>

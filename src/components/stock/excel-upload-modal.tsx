@@ -70,10 +70,10 @@ const KIND_CONFIG = {
     noun: "barang masuk",
     template: "barang-masuk",
     direction: "in" as Direction,
-    columns: ["Tanggal", "Tipe", "Ref Batch", "SKU", "Qty", "Catatan"],
+    columns: ["Tanggal", "Tipe", "No PO", "SKU", "Qty", "Catatan"],
     headers: [
       ...STOCK_COMMON,
-      { key: "ref", label: "Ref Batch", aliases: ["batch", "nobatch", "refbatch", "batchno"] },
+      { key: "ref", label: "No PO", aliases: ["po", "nopo", "refpo", "pono", "batch", "nobatch", "refbatch", "batchno"] },
     ] as HeaderSpec<StockKey>[],
   },
   keluar: {
@@ -129,8 +129,8 @@ interface StockLine {
   date: string | null;
   type: MovementType | null;
   channel: SalesChannel | null;
-  batchId: string | null;
-  batchNo: string | null;
+  poId: string | null;
+  poNo: string | null;
   skuId: string | null;
   skuLabel: string | null;
   qty: number | null;
@@ -151,7 +151,7 @@ interface Lookups {
   activeByCode: Map<string, PpicRow>;
   /** Semua kode SKU di database (aktif & nonaktif) → is_active. null jika gagal dimuat. */
   allCodes: Map<string, boolean> | null;
-  batches: Map<string, { id: string; status: string }>;
+  pos: Map<string, { id: string; status: string }>;
 }
 
 type RowFilter = "all" | "valid" | "error" | "warn";
@@ -203,21 +203,21 @@ function validateStockRows(
     const qty = parsePositiveInt(qtyV);
     if (qty === null) errors.push("Qty harus bilangan bulat > 0");
 
-    // Ref Batch / Channel
+    // No PO / Channel
     const refText = cellText(refV);
     let channel: SalesChannel | null = null;
-    let batchId: string | null = null;
-    let batchNo: string | null = null;
+    let poId: string | null = null;
+    let poNo: string | null = null;
     if (isIn) {
       if (type === "produksi") {
-        batchNo = refText.toUpperCase();
-        const batch = batchNo ? lookups.batches.get(batchNo) : undefined;
-        if (!batchNo) errors.push("Ref Batch wajib untuk Produksi");
-        else if (!batch) errors.push("Ref Batch tidak ditemukan");
-        else if (batch.status === "cancelled") errors.push("Ref Batch sudah dibatalkan");
-        else batchId = batch.id;
+        poNo = refText.toUpperCase().replace(/^BATCH-/, "PO-");
+        const po = poNo ? lookups.pos.get(poNo) : undefined;
+        if (!poNo) errors.push("No PO wajib untuk Penerimaan PO");
+        else if (!po) errors.push("No PO tidak ditemukan");
+        else if (po.status !== "open") errors.push(po.status === "draft" ? "PO masih draft" : "PO sudah selesai / dibatalkan");
+        else poId = po.id;
       } else if (refText && type) {
-        warnings.push("Ref Batch diabaikan (hanya untuk Produksi)");
+        warnings.push("No PO diabaikan (hanya untuk Penerimaan PO)");
       }
     } else {
       if (refText) {
@@ -244,8 +244,8 @@ function validateStockRows(
         date,
         type,
         channel,
-        batchId,
-        batchNo,
+        poId,
+        poNo,
         skuId: sku?.id ?? null,
         skuLabel: sku?.label ?? null,
         qty,
@@ -388,26 +388,26 @@ export function ExcelUploadModal({
     } catch {
       allCodes = null;
     }
-    const batches = new Map<string, { id: string; status: string }>();
+    const pos = new Map<string, { id: string; status: string }>();
     if (kind === "masuk" && refIndex !== undefined) {
       const nos = [
         ...new Set(
           grid
             .slice(headerRow + 1)
-            .map((cells) => cellText(cells[refIndex]).toUpperCase())
+            .map((cells) => cellText(cells[refIndex]).toUpperCase().replace(/^BATCH-/, "PO-"))
             .filter(Boolean),
         ),
       ];
       for (let i = 0; i < nos.length; i += 200) {
         const { data, error } = await supabase
-          .from("production_batches")
-          .select("id, batch_no, status")
-          .in("batch_no", nos.slice(i, i + 200));
-        if (error) throw new Error(`Gagal memuat batch: ${error.message}`);
-        for (const b of data ?? []) batches.set((b.batch_no as string).toUpperCase(), { id: b.id as string, status: b.status as string });
+          .from("purchase_orders")
+          .select("id, po_no, status")
+          .in("po_no", nos.slice(i, i + 200));
+        if (error) throw new Error(`Gagal memuat PO: ${error.message}`);
+        for (const b of data ?? []) pos.set((b.po_no as string).toUpperCase(), { id: b.id as string, status: b.status as string });
       }
     }
-    return { activeByCode, allCodes, batches };
+    return { activeByCode, allCodes, pos };
   }
 
   async function handleFile(file: File) {
@@ -467,7 +467,7 @@ export function ExcelUploadModal({
     const groups = new Map<string, { input: StockDocumentInput; qty: Map<string, number>; notes: string[] }>();
     for (const r of validRows) {
       const s = r.stock!;
-      const ref = isIn ? (s.type === "produksi" ? s.batchId : null) : s.channel;
+      const ref = isIn ? (s.type === "produksi" ? s.poId : null) : s.channel;
       const key = `${s.date}|${s.type}|${ref ?? ""}`;
       let g = groups.get(key);
       if (!g) {
@@ -477,7 +477,7 @@ export function ExcelUploadModal({
             type: s.type!,
             doc_date: s.date!,
             channel: isIn ? null : s.channel,
-            batch_id: isIn && s.type === "produksi" ? s.batchId : null,
+            po_id: isIn && s.type === "produksi" ? s.poId : null,
             note: null,
             source: "excel",
             lines: [],
@@ -735,7 +735,7 @@ export function ExcelUploadModal({
                 <>
                   <strong>{fmtInt(documents.length)} catatan</strong> · {fmtInt(validRows.length)} baris ·{" "}
                   <strong>{fmtSigned(isIn ? totalQty : -totalQty)} pcs</strong>. Baris dikelompokkan per Tanggal + Tipe +{" "}
-                  {isIn ? "Ref Batch" : "Channel"}; SKU yang sama dalam 1 catatan dijumlahkan.
+                  {isIn ? "No PO" : "Channel"}; SKU yang sama dalam 1 catatan dijumlahkan.
                 </>
               )}
               {errorRows.length > 0 && <> Baris error tidak ikut diimport.</>}
@@ -892,13 +892,13 @@ function FormatInfo({ kind }: { kind: UploadKind }) {
   const isIn = kind === "masuk";
   return (
     <InfoBanner head="Format Excel" className="!mb-0">
-      Kolom wajib: <strong>Tipe</strong> ({isIn ? "Produksi / Retur / Adjustment / Transfer" : "Sales / Damage / Giveaway / Adjustment / Transfer"}),{" "}
+      Kolom wajib: <strong>Tipe</strong> ({isIn ? "Penerimaan PO / Retur / Adjustment / Transfer" : "Sales / Damage / Giveaway / Adjustment / Transfer"}),{" "}
       <strong>SKU</strong> (kode SKU), <strong>Qty</strong> (bilangan bulat).
       <br />
       Kolom opsional: <strong>Tanggal</strong> (yyyy-mm-dd atau dd/mm/yyyy, kosong = hari ini),{" "}
       {isIn ? (
         <>
-          <strong>Ref Batch</strong> (wajib untuk Produksi),
+          <strong>No PO</strong> (wajib untuk Penerimaan PO),
         </>
       ) : (
         <>
@@ -907,7 +907,7 @@ function FormatInfo({ kind }: { kind: UploadKind }) {
       )}{" "}
       <strong>Catatan</strong>.
       <br />
-      Baris dengan Tanggal + Tipe + {isIn ? "Ref Batch" : "Channel"} yang sama digabung jadi 1 catatan.
+      Baris dengan Tanggal + Tipe + {isIn ? "No PO" : "Channel"} yang sama digabung jadi 1 catatan.
     </InfoBanner>
   );
 }
@@ -924,7 +924,7 @@ function StockCells({ row, isIn }: { row: PreviewRow; isIn: boolean }) {
       </td>
       <td className="whitespace-nowrap">
         {isIn ? (
-          s.batchNo || refRaw || dash
+          s.poNo || refRaw || dash
         ) : s.channel ? (
           CHANNEL_LABEL[s.channel]
         ) : (

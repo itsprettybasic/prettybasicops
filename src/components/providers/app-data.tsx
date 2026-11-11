@@ -14,7 +14,8 @@ export interface StockModalPreset {
   direction: Direction;
   type?: MovementType;
   skuId?: string;
-  batchId?: string;
+  /** Penerimaan PO: isi otomatis dari sisa PO ini */
+  poId?: string;
 }
 
 interface AppDataValue {

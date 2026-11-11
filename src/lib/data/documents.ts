@@ -2,7 +2,7 @@ import "server-only";
 import { addDays, format, parseISO } from "date-fns";
 import { createClient } from "@/lib/supabase/server";
 import { todayJakarta } from "@/lib/format";
-import type { Direction, MovementType, SalesChannel } from "@/lib/constants";
+import { IN_TYPES, OUT_TYPES, type Direction, type MovementType, type SalesChannel } from "@/lib/constants";
 import { fetchAll } from "./fetch-all";
 
 export interface DocumentSummary {
@@ -12,7 +12,9 @@ export interface DocumentSummary {
   type: MovementType;
   doc_date: string;
   channel: SalesChannel | null;
-  batch_no: string | null;
+  po_id: string | null;
+  po_no: string | null;
+  vendor_name: string | null;
   note: string | null;
   source: string;
   voided_at: string | null;
@@ -34,8 +36,8 @@ export interface DocumentHistoryStats {
   today: PeriodTotal;
   week: PeriodTotal;
   month: PeriodTotal;
-  /** Masuk: jumlah batch berstatus in_production */
-  pendingBatches?: number;
+  /** Masuk: jumlah PO berstatus Dipesan (belum datang semua) */
+  openPos?: number;
   /** Keluar: damage & sales bulan ini */
   damageMonth?: number;
   salesMonth?: number;
@@ -71,6 +73,7 @@ interface TotalsRow {
 export async function getDocumentHistory(
   direction: Direction,
   range: { from?: string; to?: string },
+  opts: { type?: MovementType } = {},
 ): Promise<DocumentHistoryData> {
   const today = todayJakarta();
   const monthStart = `${today.slice(0, 8)}01`;
@@ -93,7 +96,7 @@ export async function getDocumentHistory(
     const totals = async (p_from: string): Promise<TotalsRow[]> => {
       const { data, error } = await supabase.rpc("movement_totals", { p_from, p_to: today });
       if (error) throw new Error(error.message);
-      return ((data ?? []) as TotalsRow[]).filter((r) => r.direction === direction);
+      return ((data ?? []) as TotalsRow[]).filter((r) => r.direction === direction && (!opts.type || r.type === opts.type));
     };
     const sum = (rows: TotalsRow[]): PeriodTotal => ({
       qty: rows.reduce((s, r) => s + r.qty, 0),
@@ -105,9 +108,10 @@ export async function getDocumentHistory(
         supabase
           .from("v_document_summary")
           .select(
-            "id, doc_no, direction, type, doc_date, channel, batch_no, note, source, voided_at, void_reason, created_by_name, created_at, sku_count, total_qty, product_names",
+            "id, doc_no, direction, type, doc_date, channel, po_id, po_no, vendor_name, note, source, voided_at, void_reason, created_by_name, created_at, sku_count, total_qty, product_names",
           )
           .eq("direction", direction)
+          .in("type", opts.type ? [opts.type] : direction === "in" ? IN_TYPES : OUT_TYPES)
           .gte("doc_date", from)
           .lte("doc_date", to)
           .order("doc_date", { ascending: false })
@@ -118,13 +122,13 @@ export async function getDocumentHistory(
       totals(shift(today, -6)),
       totals(monthStart),
       direction === "in"
-        ? supabase.from("production_batches").select("id", { count: "exact", head: true }).eq("status", "in_production")
+        ? supabase.from("purchase_orders").select("id", { count: "exact", head: true }).eq("status", "open")
         : Promise.resolve(null),
     ]);
     if (pending?.error) throw new Error(pending.error.message);
 
     const stats: DocumentHistoryStats = { today: sum(tToday), week: sum(tWeek), month: sum(tMonth) };
-    if (direction === "in") stats.pendingBatches = pending?.count ?? 0;
+    if (direction === "in") stats.openPos = pending?.count ?? 0;
     else {
       stats.damageMonth = tMonth.filter((r) => r.type === "damage").reduce((s, r) => s + r.qty, 0);
       stats.salesMonth = tMonth.filter((r) => r.type === "sales").reduce((s, r) => s + r.qty, 0);

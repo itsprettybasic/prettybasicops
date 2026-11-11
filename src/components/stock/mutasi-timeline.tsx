@@ -27,7 +27,8 @@ export interface MutasiDoc {
   type: MovementType;
   doc_date: string;
   channel: SalesChannel | null;
-  batch_no: string | null;
+  po_no: string | null;
+  vendor_name: string | null;
   note: string | null;
   source: string;
   created_at: string;
@@ -59,8 +60,8 @@ function signedQty(direction: Direction, qty: number) {
   return fmtSigned(direction === "in" ? qty : -qty);
 }
 
-function searchText(m: Pick<MutasiDoc, "doc_no" | "note" | "batch_no" | "type" | "channel">) {
-  return [m.doc_no, m.note, m.batch_no, TYPE_LABEL[m.type], m.channel ? CHANNEL_LABEL[m.channel] : ""]
+function searchText(m: Pick<MutasiDoc, "doc_no" | "note" | "po_no" | "type" | "channel"> & { vendor_name?: string | null }) {
+  return [m.doc_no, m.note, m.po_no, m.vendor_name, TYPE_LABEL[m.type], m.channel ? CHANNEL_LABEL[m.channel] : ""]
     .filter(Boolean)
     .join(" ")
     .toLowerCase();
@@ -204,7 +205,8 @@ export function MutasiTimeline({
             { header: "Arah", width: 10, value: (d) => (d.direction === "in" ? "Masuk" : "Keluar") },
             { header: "Tipe", width: 14, value: (d) => TYPE_LABEL[d.type] },
             { header: "Channel", width: 14, value: (d) => (d.channel ? CHANNEL_LABEL[d.channel] : null) },
-            { header: "Ref Batch", width: 18, value: (d) => d.batch_no },
+            { header: "No PO", width: 18, value: (d) => d.po_no },
+            { header: "Vendor", width: 22, value: (d) => d.vendor_name },
             { header: "Jumlah SKU", numFmt: "#,##0", value: (d) => d.sku_count },
             { header: "Total Qty", numFmt: "#,##0", value: (d) => (d.direction === "in" ? d.total_qty : -d.total_qty) },
             { header: "Produk", width: 40, value: (d) => (d.product_names ?? "").split("|").join(", ") },
@@ -285,7 +287,7 @@ export function MutasiTimeline({
               setLimit(STEP);
               setPage(0);
             }}
-            placeholder={skuId ? "Cari catatan, batch, tipe..." : "Cari catatan, batch, produk..."}
+            placeholder={skuId ? "Cari catatan, PO, tipe..." : "Cari catatan, PO, produk..."}
           />
           {(["all", "in", "out"] as const).map((k) => (
             <FilterChip
