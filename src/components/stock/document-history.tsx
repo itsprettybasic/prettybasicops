@@ -2,7 +2,7 @@
 
 import { useMemo, useState, useTransition } from "react";
 import { usePathname, useRouter } from "next/navigation";
-import { Upload } from "lucide-react";
+import { Pencil, Trash2, Upload } from "lucide-react";
 import { PageHeader } from "@/components/layout/page-header";
 import { StatCard, StatGrid } from "@/components/ui/stat-card";
 import { Panel, Toolbar } from "@/components/ui/panel";
@@ -26,7 +26,7 @@ import { fmtDate, fmtDec, fmtInt, fmtMonthYear, fmtSigned, fmtTime } from "@/lib
 import { cn } from "@/lib/cn";
 import type { DocumentHistoryData, DocumentSummary } from "@/lib/data/documents";
 
-const COLS = 8;
+const COLS = 9;
 
 export function SourceBadge({ source }: { source: string }) {
   const label = source === "excel" ? "Excel" : source === "seed" ? "Import awal" : source === "opname" ? "Opname" : "Manual";
@@ -72,7 +72,7 @@ export function DocumentHistory({ data, receipts = false }: { data: DocumentHist
   const [to, setTo] = useState(data.to);
   const [page, setPage] = useState(0);
   const [pageSize, setPageSize] = useState(25);
-  const [detailId, setDetailId] = useState<string | null>(null);
+  const [detail, setDetail] = useState<{ id: string; action?: "edit" | "delete" } | null>(null);
 
   const indexed = useMemo(() => data.documents.map((d) => ({ doc: d, hay: searchText(d) })), [data.documents]);
   const voidedCount = useMemo(() => data.documents.filter((d) => d.voided_at).length, [data.documents]);
@@ -188,7 +188,7 @@ export function DocumentHistory({ data, receipts = false }: { data: DocumentHist
         sub={
           receipts
             ? "Klik baris untuk lihat rincian, cetak bukti penerimaan, edit, atau hapus"
-            : "1 catatan bisa berisi banyak SKU · Klik baris untuk lihat detail"
+            : "1 catatan bisa berisi banyak SKU · Klik baris untuk lihat detail, atau langsung edit / hapus"
         }
         actions={
           <>
@@ -290,6 +290,7 @@ export function DocumentHistory({ data, receipts = false }: { data: DocumentHist
               <th className="num">Total Qty</th>
               <th>Catatan</th>
               <th>Admin</th>
+              <th className="w-[76px]" aria-label="Aksi" />
             </tr>
           </thead>
           <tbody>
@@ -318,7 +319,7 @@ export function DocumentHistory({ data, receipts = false }: { data: DocumentHist
                 const shown = d.product_names.slice(0, 3);
                 const rest = d.product_names.length - shown.length;
                 return (
-                  <tr key={d.id} className={cn("clickable", voided && "text-grey-2")} onClick={() => setDetailId(d.id)}>
+                  <tr key={d.id} className={cn("clickable", voided && "text-grey-2")} onClick={() => setDetail({ id: d.id })}>
                     <td className="whitespace-nowrap">
                       <span className={cn("num text-[12.5px] font-semibold", voided ? "text-grey-2" : "text-ink-2")}>{d.doc_no}</span>
                     </td>
@@ -371,6 +372,26 @@ export function DocumentHistory({ data, receipts = false }: { data: DocumentHist
                         <SourceBadge source={d.source} />
                       </div>
                     </td>
+                    <td className="whitespace-nowrap text-right" onClick={(e) => e.stopPropagation()}>
+                      <button
+                        type="button"
+                        title="Edit"
+                        aria-label={`Edit ${d.doc_no}`}
+                        onClick={() => setDetail({ id: d.id, action: "edit" })}
+                        className="inline-flex h-8 w-8 cursor-pointer items-center justify-center rounded-lg text-grey-1 hover:bg-primary-tint hover:text-primary-2"
+                      >
+                        <Pencil className="h-3.5 w-3.5" />
+                      </button>
+                      <button
+                        type="button"
+                        title="Hapus"
+                        aria-label={`Hapus ${d.doc_no}`}
+                        onClick={() => setDetail({ id: d.id, action: "delete" })}
+                        className="inline-flex h-8 w-8 cursor-pointer items-center justify-center rounded-lg text-grey-1 hover:bg-neg-tint hover:text-neg"
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </button>
+                    </td>
                   </tr>
                 );
               })
@@ -392,12 +413,13 @@ export function DocumentHistory({ data, receipts = false }: { data: DocumentHist
         )}
       </Panel>
 
-      {detailId && (
+      {detail && (
         <DocumentDetailModal
-          key={detailId}
-          documentId={detailId}
-          open={detailId !== null}
-          onOpenChange={(o) => !o && setDetailId(null)}
+          key={`${detail.id}:${detail.action ?? "view"}`}
+          documentId={detail.id}
+          initialAction={detail.action}
+          open
+          onOpenChange={(o) => !o && setDetail(null)}
         />
       )}
     </>

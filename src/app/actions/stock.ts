@@ -229,6 +229,43 @@ export async function updateReceipt(input: {
   return { ok: true, data: undefined };
 }
 
+/** Ubah catatan barang masuk/keluar apa saja: tipe (searah), tanggal, channel, catatan, qty per SKU. */
+export async function updateStockDocument(input: {
+  id: string;
+  type: MovementType;
+  doc_date: string;
+  channel: SalesChannel | null;
+  note: string | null;
+  lines: { sku_id: string; qty: number }[];
+}): Promise<ActionResult> {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(input.doc_date)) return fail("Tanggal tidak valid");
+  if (input.lines.length === 0) return fail("Minimal 1 SKU dengan qty");
+  if (input.lines.some((l) => !Number.isInteger(l.qty) || l.qty <= 0)) return fail("Qty harus bilangan bulat lebih dari 0");
+  if (new Set(input.lines.map((l) => l.sku_id)).size !== input.lines.length) return fail("Ada SKU duplikat");
+  if (input.type === "sales" && !input.channel) return fail("Channel wajib diisi untuk Sales");
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("update_stock_document", {
+    p_id: input.id,
+    p_type: input.type,
+    p_doc_date: input.doc_date,
+    p_channel: input.channel,
+    p_note: input.note,
+    p_lines: input.lines,
+  });
+  if (error) return fail(error.message);
+  revalidatePath("/", "layout");
+  return { ok: true, data: undefined };
+}
+
+/** Hapus permanen catatan barang masuk/keluar apa saja — stock otomatis menyesuaikan. */
+export async function deleteStockDocument(id: string): Promise<ActionResult> {
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("delete_stock_document", { p_id: id });
+  if (error) return fail(error.message);
+  revalidatePath("/", "layout");
+  return { ok: true, data: undefined };
+}
+
 /** Hapus Penerimaan Barang — stock dikurangi lagi dan status PO disesuaikan. */
 export async function deleteReceipt(id: string): Promise<ActionResult> {
   const supabase = await createClient();

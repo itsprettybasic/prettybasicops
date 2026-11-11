@@ -7,7 +7,6 @@ import { toast } from "sonner";
 import { Modal } from "@/components/ui/modal";
 import { Button } from "@/components/ui/button";
 import { Combobox, type ComboOption } from "@/components/ui/combobox";
-import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { useAppData, type StockModalPreset } from "@/components/providers/app-data";
 import {
   CHANNELS,
@@ -19,7 +18,13 @@ import {
   type SalesChannel,
 } from "@/lib/constants";
 import { fmtInt, fmtSigned } from "@/lib/format";
-import { createStockDocument, getOpenPos, type OpenPo } from "@/app/actions/stock";
+import {
+  createStockDocument,
+  getOpenPos,
+  updateStockDocument,
+  type DocumentDetail,
+  type OpenPo,
+} from "@/app/actions/stock";
 import { cn } from "@/lib/cn";
 
 interface Line {
@@ -36,41 +41,65 @@ export function StockDocumentModal({
   onOpenChange,
   preset,
   onSwitchToUpload,
+  editDoc,
+  onSaved,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   preset: StockModalPreset;
-  onSwitchToUpload: () => void;
+  onSwitchToUpload?: () => void;
+  /** Mode edit: catatan yang diubah (bukan Penerimaan PO — itu pakai ReceiptEditModal) */
+  editDoc?: DocumentDetail;
+  onSaved?: () => void;
 }) {
   const router = useRouter();
-  const { today, skuOptions, rowById } = useAppData();
+  const { today, skuOptions: activeSkuOptions, rowById } = useAppData();
   const isIn = preset.direction === "in";
+  const isEdit = !!editDoc;
 
   // Dibuka dari SKU tertentu → default Adjustment + (Penerimaan PO butuh No PO yang akan mengganti isi baris)
   const [type, setType] = useState<MovementType>(
-    preset.type ?? (isIn ? (preset.skuId && !preset.poId ? "adjustment_in" : "produksi") : "sales"),
+    editDoc?.type ?? preset.type ?? (isIn ? (preset.skuId && !preset.poId ? "adjustment_in" : "produksi") : "sales"),
   );
-  const [date, setDate] = useState(today);
-  const [channel, setChannel] = useState<SalesChannel | null>(isIn ? null : "shopee");
+  const [date, setDate] = useState(editDoc?.doc_date ?? today);
+  const [channel, setChannel] = useState<SalesChannel | null>(editDoc ? editDoc.channel : isIn ? null : "shopee");
   const [poId, setPoId] = useState<string | null>(preset.poId ?? null);
-  const [note, setNote] = useState("");
-  const [lines, setLines] = useState<Line[]>(() => [newLine(preset.skuId ?? null)]);
+  const [note, setNote] = useState(editDoc?.note ?? "");
+  const [lines, setLines] = useState<Line[]>(() =>
+    editDoc ? editDoc.lines.map((l) => newLine(l.sku_id, String(l.qty))) : [newLine(preset.skuId ?? null)],
+  );
   const [pos, setPos] = useState<OpenPo[] | null>(null);
   const [saving, setSaving] = useState(false);
-  const [confirmMinus, setConfirmMinus] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+
+  // Qty asli catatan yang diedit → stock "sebelum catatan ini" = stock sekarang dikoreksi qty asli
+  const origQty = useMemo(
+    () => new Map(editDoc && !editDoc.voided_at ? editDoc.lines.map((l) => [l.sku_id, l.qty]) : []),
+    [editDoc],
+  );
+  const stockBefore = (skuId: string, stock: number) => stock + (isIn ? -1 : 1) * (origQty.get(skuId) ?? 0);
+
+  // SKU nonaktif yang ada di catatan lama tetap bisa tampil di pilihan
+  const skuOptions = useMemo<ComboOption[]>(() => {
+    if (!editDoc) return activeSkuOptions;
+    const known = new Set(activeSkuOptions.map((o) => o.value));
+    const extra = editDoc.lines
+      .filter((l) => !known.has(l.sku_id))
+      .map((l) => ({ value: l.sku_id, label: l.label, sublabel: l.code, keywords: l.product_name }));
+    return [...activeSkuOptions, ...extra];
+  }, [activeSkuOptions, editDoc]);
 
   const comboRefs = useRef(new Map<number, HTMLInputElement | null>());
   const qtyRefs = useRef(new Map<number, HTMLInputElement | null>());
   const focusNext = useRef<{ key: number; field: "sku" | "qty" } | null>(null);
 
   useEffect(() => {
-    if (!isIn || !open) return;
+    if (!isIn || !open || isEdit) return;
     getOpenPos().then((res) => {
       if (res.ok) setPos(res.data);
       else toast.error(`Gagal memuat PO: ${res.error}`);
     });
-  }, [isIn, open]);
+  }, [isIn, open, isEdit]);
 
   // Preset PO (dari detail PO → Terima Barang): isi semua SKU sisa
   const appliedPresetPo = useRef(false);
@@ -100,7 +129,9 @@ export function StockDocumentModal({
   const selectedPo = pos?.find((p) => p.id === poId) ?? null;
   const poLineBySku = useMemo(() => new Map((selectedPo?.lines ?? []).map((l) => [l.sku_id, l])), [selectedPo]);
 
-  const typeOptions: ComboOption[] = (isIn ? IN_TYPES : OUT_TYPES).map((t) => ({ value: t, label: TYPE_OPTION_LABEL[t] }));
+  const typeOptions: ComboOption[] = (isIn ? IN_TYPES : OUT_TYPES)
+    .filter((t) => !isEdit || t !== "produksi")
+    .map((t) => ({ value: t, label: TYPE_OPTION_LABEL[t] }));
   const channelOptions: ComboOption[] = CHANNELS.map((c) => ({ value: c, label: CHANNEL_LABEL[c] }));
   const poOptions: ComboOption[] = (pos ?? []).map((b) => ({
     value: b.id,
@@ -128,9 +159,8 @@ export function StockDocumentModal({
 
   const filled = parsed.filter((l) => l.skuId && l.qtyNum);
   const totalQty = filled.reduce((s, l) => s + (l.qtyNum ?? 0), 0);
-  const overStock = isIn ? [] : parsed.filter((l) => l.row && l.qtyNum && l.qtyNum > l.row.stock);
   const channelRequired = type === "sales";
-  const poRequired = type === "produksi";
+  const poRequired = type === "produksi" && !isEdit;
 
   const errors: string[] = [];
   if (filled.length === 0) errors.push("Isi minimal 1 SKU dengan qty.");
@@ -155,17 +185,32 @@ export function StockDocumentModal({
     setLines((ls) => (ls.length <= 1 ? [newLine()] : ls.filter((l) => l.key !== key)));
   }
 
-  async function save(force = false) {
+  async function save() {
     setSubmitted(true);
     if (errors.length) {
       toast.error(errors[0]);
       return;
     }
-    if (!force && overStock.length > 0 && type !== "adjustment_out") {
-      setConfirmMinus(true);
+    setSaving(true);
+    if (editDoc) {
+      const res = await updateStockDocument({
+        id: editDoc.id,
+        type,
+        doc_date: date,
+        channel: isIn ? null : channel,
+        note: note.trim() || null,
+        lines: filled.map((l) => ({ sku_id: l.skuId!, qty: l.qtyNum! })),
+      });
+      setSaving(false);
+      if (!res.ok) {
+        toast.error(`Gagal menyimpan: ${res.error}`);
+        return;
+      }
+      toast.success(`${editDoc.doc_no} diperbarui · ${filled.length} SKU · ${fmtSigned(isIn ? totalQty : -totalQty)} pcs`);
+      onSaved?.();
+      router.refresh();
       return;
     }
-    setSaving(true);
     const res = await createStockDocument({
       direction: preset.direction,
       type,
@@ -189,23 +234,37 @@ export function StockDocumentModal({
   }
 
   return (
-    <>
       <Modal
         open={open}
         onOpenChange={onOpenChange}
         wide
-        title={isIn ? (type === "produksi" ? "Terima Barang dari PO" : "Catat Barang Masuk") : "Catat Barang Keluar"}
-        sub="Satu catatan bisa berisi banyak SKU · Stock langsung ter-update"
+        eyebrow={editDoc ? (isIn ? "Barang Masuk" : "Barang Keluar") : undefined}
+        title={
+          editDoc
+            ? `Ubah ${editDoc.doc_no}`
+            : isIn
+            ? type === "produksi"
+              ? "Terima Barang dari PO"
+              : "Catat Barang Masuk"
+            : "Catat Barang Keluar"
+        }
+        sub={
+          editDoc
+            ? "Ubah tipe, tanggal, channel, catatan, atau SKU & qty · Stock langsung menyesuaikan"
+            : "Satu catatan bisa berisi banyak SKU · Stock langsung ter-update"
+        }
         footerLeft={
-          <Button onClick={onSwitchToUpload}>
-            <Upload className="h-3.5 w-3.5" /> Upload Excel
-          </Button>
+          onSwitchToUpload && !isEdit ? (
+            <Button onClick={onSwitchToUpload}>
+              <Upload className="h-3.5 w-3.5" /> Upload Excel
+            </Button>
+          ) : undefined
         }
         footer={
           <>
             <Button onClick={() => onOpenChange(false)}>Batal</Button>
             <Button variant={isIn ? "pos" : "neg"} loading={saving} onClick={() => save()}>
-              Simpan {isIn ? "Barang Masuk" : "Barang Keluar"}
+              {isEdit ? "Simpan Perubahan" : `Simpan ${isIn ? "Barang Masuk" : "Barang Keluar"}`}
             </Button>
           </>
         }
@@ -273,7 +332,7 @@ export function StockDocumentModal({
           <thead>
             <tr>
               <th>SKU</th>
-              <th className="num w-[130px]">Stock Sekarang</th>
+              <th className="num w-[130px]">{isEdit ? "Stock Sebelum" : "Stock Sekarang"}</th>
               <th className="num w-[120px]">Qty (pcs)</th>
               <th className="w-9" />
             </tr>
@@ -281,9 +340,10 @@ export function StockDocumentModal({
           <tbody>
             {parsed.map((l, i) => {
               const dup = duplicateOf.get(l.key);
-              const over = !isIn && l.row && l.qtyNum !== null && l.qtyNum > l.row.stock;
+              const base = l.row ? stockBefore(l.row.id, l.row.stock) : null;
+              const after = base !== null && l.qtyNum !== null ? base + (isIn ? l.qtyNum : -l.qtyNum) : null;
               return (
-                <tr key={l.key} className={cn(over && "bg-neg-tint/40")}>
+                <tr key={l.key}>
                   <td>
                     <Combobox
                       size="sm"
@@ -309,9 +369,11 @@ export function StockDocumentModal({
                         </div>
                       );
                     })()}
-                    {over && <div className="form-error">Melebihi stock (tersisa {fmtInt(l.row!.stock)})</div>}
+                    {after !== null && after < 0 && (
+                      <div className="mt-0.5 text-[11px] text-grey-1">Stock jadi {fmtSigned(after)} (minus tetap boleh)</div>
+                    )}
                   </td>
-                  <td className="num text-grey-1">{l.row ? fmtInt(l.row.stock) : "—"}</td>
+                  <td className="num text-grey-1">{base !== null ? fmtInt(base) : "—"}</td>
                   <td className="num">
                     <input
                       ref={(el) => {
@@ -320,7 +382,7 @@ export function StockDocumentModal({
                       type="number"
                       min={1}
                       inputMode="numeric"
-                      className={cn("qty-input", ((submitted && l.skuId && !l.qtyNum) || over) && "error")}
+                      className={cn("qty-input", submitted && l.skuId && !l.qtyNum && "error")}
                       placeholder="0"
                       value={l.qty}
                       onChange={(e) => updateLine(l.key, { qty: e.target.value })}
@@ -376,26 +438,5 @@ export function StockDocumentModal({
           <div className="mt-3 rounded-lg bg-neg-tint px-3 py-2 text-[12px] font-semibold text-neg-text">{errors[0]}</div>
         )}
       </Modal>
-
-      <ConfirmDialog
-        open={confirmMinus}
-        onOpenChange={setConfirmMinus}
-        title="Stock akan menjadi minus"
-        message={
-          <>
-            {overStock.length} SKU melebihi stock yang tercatat. Stock akan menjadi minus. Lanjutkan?
-            <div className="mt-2 text-xs text-grey-1">
-              Biasanya terjadi kalau data marketplace lebih cepat dari pencatatan barang masuk.
-            </div>
-          </>
-        }
-        confirmLabel="Ya, simpan"
-        tone="neg"
-        onConfirm={async () => {
-          setConfirmMinus(false);
-          await save(true);
-        }}
-      />
-    </>
   );
 }

@@ -10,8 +10,9 @@ import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { InfoBanner } from "@/components/ui/info-banner";
 import { SkuCell } from "@/components/ui/table-parts";
 import { useAppData } from "@/components/providers/app-data";
-import { deleteReceipt, getDocumentDetail, voidStockDocument, type DocumentDetail } from "@/app/actions/stock";
+import { deleteStockDocument, getDocumentDetail, type DocumentDetail } from "@/app/actions/stock";
 import { ReceiptEditModal } from "@/components/po/receipt-edit-modal";
+import { StockDocumentModal } from "@/components/stock/stock-document-modal";
 import { Pencil, Printer, Trash2 } from "lucide-react";
 import { CHANNEL_LABEL, TYPE_LABEL, TYPE_OPTION_LABEL, TYPE_TONE } from "@/lib/constants";
 import { fmtDate, fmtDateLong, fmtInt, fmtSigned, fmtTime } from "@/lib/format";
@@ -29,23 +30,29 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
   );
 }
 
-/** Modal detail satu catatan stock: info header, semua SKU & qty, dan tombol Batalkan Catatan (void). */
+/**
+ * Modal detail satu catatan stock: info header, semua SKU & qty, tombol Edit & Hapus (semua tipe).
+ * `initialAction` = langsung buka form edit / konfirmasi hapus (dari tombol di baris tabel).
+ */
 export function DocumentDetailModal({
   documentId,
   open,
   onOpenChange,
+  initialAction,
 }: {
   documentId: string;
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  initialAction?: "edit" | "delete";
 }) {
   const router = useRouter();
   const { rowById, openSkuDetail } = useAppData();
   const [doc, setDoc] = useState<DocumentDetail | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [confirmVoid, setConfirmVoid] = useState(false);
-  const [confirmDelete, setConfirmDelete] = useState(false);
-  const [editing, setEditing] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(initialAction === "delete");
+  const [editing, setEditing] = useState(initialAction === "edit");
+  // Dibuka langsung ke edit/hapus dari tabel → setelah selesai/batal, tutup semuanya
+  const direct = initialAction !== undefined;
   const [reload, setReload] = useState(0);
 
   useEffect(() => {
@@ -67,41 +74,39 @@ export function DocumentDetailModal({
 
   async function doDelete() {
     if (!doc) return;
-    const res = await deleteReceipt(doc.id);
+    const res = await deleteStockDocument(doc.id);
     if (!res.ok) {
       toast.error(`Gagal menghapus: ${res.error}`);
       return;
     }
-    toast.success(`Penerimaan ${doc.doc_no} dihapus · stock dikurangi lagi`);
+    toast.success(`${doc.doc_no} dihapus · stock sudah disesuaikan`);
     setConfirmDelete(false);
     onOpenChange(false);
     router.refresh();
   }
 
-  async function doVoid(reason: string) {
-    if (!doc) return;
-    const res = await voidStockDocument(doc.id, reason);
-    if (!res.ok) {
-      toast.error(`Gagal membatalkan: ${res.error}`);
-      return;
-    }
-    toast.success(`Catatan ${doc.doc_no} dibatalkan · stock dikembalikan`);
-    setConfirmVoid(false);
-    onOpenChange(false);
-    router.refresh();
+  function closeEdit() {
+    setEditing(false);
+    if (direct) onOpenChange(false);
+  }
+
+  function closeDelete(o: boolean) {
+    setConfirmDelete(o);
+    if (!o && direct) onOpenChange(false);
   }
 
   return (
     <>
       <Modal
-        open={open && !editing}
+        open={open && !editing && !(direct && confirmDelete)}
         onOpenChange={onOpenChange}
         eyebrow={doc ? (isReceipt ? "Penerimaan Barang" : isIn ? "Barang Masuk" : "Barang Keluar") : undefined}
         title={doc ? doc.doc_no : "Detail Catatan"}
         sub={doc ? fmtDateLong(doc.doc_date) : undefined}
         footerLeft={
-          doc && isReceipt ? (
+          doc ? (
             <>
+              {isReceipt && (
               <a
                 href={`/cetak/penerimaan/${doc.id}`}
                 target="_blank"
@@ -110,19 +115,14 @@ export function DocumentDetailModal({
               >
                 <Printer className="h-3.5 w-3.5" /> Bukti Penerimaan
               </a>
-              {!voided && (
-                <Button onClick={() => setEditing(true)}>
-                  <Pencil className="h-3.5 w-3.5" /> Edit
-                </Button>
               )}
+              <Button onClick={() => setEditing(true)}>
+                <Pencil className="h-3.5 w-3.5" /> Edit
+              </Button>
               <Button className="text-neg hover:border-neg" onClick={() => setConfirmDelete(true)}>
                 <Trash2 className="h-3.5 w-3.5" /> Hapus
               </Button>
             </>
-          ) : doc && !voided ? (
-            <Button className="text-neg hover:border-neg" onClick={() => setConfirmVoid(true)}>
-              Batalkan Catatan
-            </Button>
           ) : undefined
         }
         footer={<Button onClick={() => onOpenChange(false)}>Tutup</Button>}
@@ -258,48 +258,53 @@ export function DocumentDetailModal({
       {doc && isReceipt && editing && (
         <ReceiptEditModal
           doc={doc}
-          onClose={() => setEditing(false)}
+          onClose={closeEdit}
           onSaved={() => {
-            setEditing(false);
+            closeEdit();
             setReload((n) => n + 1);
             router.refresh();
           }}
         />
       )}
 
-      {doc && isReceipt && (
-        <ConfirmDialog
-          open={confirmDelete}
-          onOpenChange={setConfirmDelete}
-          title="Hapus penerimaan ini?"
-          message={
-            <>
-              Penerimaan <strong>{doc.doc_no}</strong> ({fmtInt(doc.lines.length)} SKU · {fmtInt(totalQty)} pcs) akan dihapus
-              permanen. Stock dikurangi lagi{doc.po_no ? <> dan sisa di PO <strong>{doc.po_no}</strong> kembali terbuka</> : null}.
-            </>
-          }
-          confirmLabel="Hapus Penerimaan"
-          tone="neg"
-          onConfirm={doDelete}
+      {doc && !isReceipt && editing && (
+        <StockDocumentModal
+          open
+          onOpenChange={(o) => !o && closeEdit()}
+          preset={{ direction: doc.direction }}
+          editDoc={doc}
+          onSaved={() => {
+            closeEdit();
+            setReload((n) => n + 1);
+          }}
         />
       )}
 
       {doc && (
         <ConfirmDialog
-          open={confirmVoid}
-          onOpenChange={setConfirmVoid}
-          title="Batalkan catatan ini?"
+          open={confirmDelete}
+          onOpenChange={closeDelete}
+          title="Hapus catatan ini?"
           message={
             <>
-              Catatan <strong>{doc.doc_no}</strong> ({fmtInt(doc.lines.length)} SKU · {fmtSigned(isIn ? totalQty : -totalQty)}{" "}
-              pcs) akan dibatalkan dan stock dikembalikan. Riwayat tetap tersimpan sebagai &quot;Dibatalkan&quot;.
+              <strong>{doc.doc_no}</strong> ({TYPE_LABEL[doc.type]} · {fmtInt(doc.lines.length)} SKU ·{" "}
+              {fmtSigned(isIn ? totalQty : -totalQty)} pcs) akan dihapus permanen.{" "}
+              {voided
+                ? "Catatan ini sudah dibatalkan, jadi stock tidak berubah."
+                : isIn
+                ? "Stock SKU-nya dikurangi lagi."
+                : "Stock SKU-nya dikembalikan."}
+              {doc.po_no ? (
+                <>
+                  {" "}
+                  Sisa di PO <strong>{doc.po_no}</strong> kembali terbuka.
+                </>
+              ) : null}
             </>
           }
-          confirmLabel="Batalkan Catatan"
+          confirmLabel="Hapus"
           tone="neg"
-          requireReason
-          reasonLabel="Alasan pembatalan"
-          onConfirm={doVoid}
+          onConfirm={doDelete}
         />
       )}
     </>

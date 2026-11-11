@@ -160,3 +160,23 @@ console.log('packing OK', (await db.query(`select * from pack_storage_summary()`
   await db.query(`delete from fabric_shipments where id=$1`, [id]);
   console.log('kain OK');
 }
+{
+  // ── Edit & hapus semua catatan; stock boleh minus ──
+  const assert = (cond, msg) => { if (!cond) { console.error('FAIL:', msg); process.exit(1); } };
+  await db.query(`select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-00000000000a', false)`);
+  const stock = async () => (await db.query(`select stock from v_sku_stock where sku_id=$1`, [sku])).rows[0].stock;
+  const before = await stock();
+  const id = (await db.query(`select create_stock_document('out','sales','2026-11-01','shopee',null,null,'manual',$1) id`, [JSON.stringify([{sku_id: sku, qty: before + 5}])])).rows[0].id;
+  assert(await stock() === -5, 'barang keluar melebihi stock → minus');
+  await db.query(`select update_stock_document($1,'damage','2026-11-02',null,'rusak',$2)`, [id, JSON.stringify([{sku_id: sku, qty: 2}])]);
+  const d = (await db.query(`select type, doc_date::text, channel, note, updated_by_name from stock_documents where id=$1`, [id])).rows[0];
+  assert(d.type === 'damage' && d.doc_date === '2026-11-02' && d.note === 'rusak' && d.updated_by_name === 'Jose Putra', 'edit catatan keluar');
+  assert(await stock() === before - 2, 'stock ikut edit');
+  let bad = false; try { await db.query(`select update_stock_document($1,'retur','2026-11-02',null,null,$2)`, [id, JSON.stringify([{sku_id: sku, qty: 1}])]); } catch { bad = true; }
+  assert(bad, 'tipe beda arah ditolak');
+  bad = false; try { await db.query(`select update_stock_document($1,'sales','2026-11-02',null,null,$2)`, [id, JSON.stringify([{sku_id: sku, qty: 1}])]); } catch { bad = true; }
+  assert(bad, 'sales tanpa channel ditolak');
+  await db.query(`select delete_stock_document($1)`, [id]);
+  assert(await stock() === before, 'hapus mengembalikan stock');
+  console.log('edit/hapus semua catatan OK');
+}
