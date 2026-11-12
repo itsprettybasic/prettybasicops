@@ -9,6 +9,7 @@ import { fmtInt } from "@/lib/format";
 import { StockDocumentModal } from "@/components/stock/stock-document-modal";
 import { ExcelUploadModal, type UploadKind } from "@/components/stock/excel-upload-modal";
 import { SkuDetailModal } from "@/components/ppic/sku-detail-modal";
+import type { Warehouse } from "@/lib/stock/warehouse-types";
 
 export interface StockModalPreset {
   direction: Direction;
@@ -24,6 +25,12 @@ interface AppDataValue {
   params: PpicParams;
   rows: PpicRow[];
   rowById: Map<string, PpicRow>;
+  /** Semua gudang (gudang utama di urutan pertama) */
+  warehouses: Warehouse[];
+  /** Gudang aktif saja */
+  activeWarehouses: Warehouse[];
+  /** id Gudang Utama (null kalau tabel gudang belum ada) */
+  defaultWarehouseId: string | null;
   /** Opsi combobox SKU (hanya SKU aktif): nama, kode, stock di kanan. */
   skuOptions: ComboOption[];
   openStockModal: (preset: StockModalPreset) => void;
@@ -44,12 +51,14 @@ export function AppDataProvider({
   months,
   params,
   rows,
+  warehouses,
   children,
 }: {
   today: string;
   months: MonthStarts;
   params: PpicParams;
   rows: PpicRow[];
+  warehouses: Warehouse[];
   children: React.ReactNode;
 }) {
   const [stockPreset, setStockPreset] = useState<StockModalPreset | null>(null);
@@ -81,9 +90,25 @@ export function AppDataProvider({
   }, []);
   const openSkuDetail = useCallback((id: string) => setSkuDetailId(id), []);
 
+  const activeWarehouses = useMemo(() => warehouses.filter((w) => w.is_active), [warehouses]);
+  const defaultWarehouseId = warehouses.find((w) => w.is_default)?.id ?? null;
+
   const value = useMemo(
-    () => ({ today, months, params, rows, rowById, skuOptions, openStockModal, openUpload, openSkuDetail }),
-    [today, months, params, rows, rowById, skuOptions, openStockModal, openUpload, openSkuDetail],
+    () => ({
+      today,
+      months,
+      params,
+      rows,
+      rowById,
+      warehouses,
+      activeWarehouses,
+      defaultWarehouseId,
+      skuOptions,
+      openStockModal,
+      openUpload,
+      openSkuDetail,
+    }),
+    [today, months, params, rows, rowById, warehouses, activeWarehouses, defaultWarehouseId, skuOptions, openStockModal, openUpload, openSkuDetail],
   );
 
   return (

@@ -3,7 +3,7 @@ import { PageHeader } from "@/components/layout/page-header";
 import { StockLiveTable, type MovementSummary } from "@/components/stock/stock-live-table";
 import { createClient } from "@/lib/supabase/server";
 import { todayJakarta } from "@/lib/format";
-import type { Direction, MovementType } from "@/lib/constants";
+import { TRANSFER_TYPES, type Direction, type MovementType } from "@/lib/constants";
 
 export const metadata = { title: "Stock Live · Pretty Basic" };
 
@@ -17,6 +17,8 @@ export default async function StockPage() {
 
   const summary: MovementSummary = { qtyIn: 0, qtyOut: 0, docsIn: 0, docsOut: 0, salesOut: 0 };
   for (const r of (totalsRes.data ?? []) as { direction: Direction; type: MovementType; doc_count: number; qty: number }[]) {
+    // Transfer antar gudang tidak menambah/mengurangi stock total
+    if (TRANSFER_TYPES.includes(r.type)) continue;
     if (r.direction === "in") {
       summary.qtyIn += r.qty;
       summary.docsIn += r.doc_count;
@@ -31,7 +33,7 @@ export default async function StockPage() {
 
   return (
     <div>
-      <PageHeader title="Stock Live — Semua SKU" sub="Real-time dari Barang Masuk & Barang Keluar" />
+      <PageHeader title="Stock Live — Semua SKU" sub="Real-time dari Barang Masuk & Barang Keluar · stock gudang yang dihitung PPIC (lihat semua gudang di Stock per Gudang)" />
       <StockLiveTable summary={summary} loadError={loadError} />
     </div>
   );

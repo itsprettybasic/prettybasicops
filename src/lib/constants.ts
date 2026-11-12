@@ -37,8 +37,10 @@ export const STATUS_RULES: { status: PpicStatus; meaning: string; action: string
   { status: "AMAN", meaning: "Stock di atas Min Stock", action: "Pantau di review berikutnya" },
 ];
 
-export const IN_TYPES: MovementType[] = ["produksi", "retur", "adjustment_in", "transfer_in"];
-export const OUT_TYPES: MovementType[] = ["sales", "damage", "giveaway", "adjustment_out", "transfer_out"];
+/** Tipe yang bisa dicatat di Barang Masuk / Keluar. Transfer antar gudang hanya lewat menu Transfer Stock. */
+export const IN_TYPES: MovementType[] = ["produksi", "retur", "adjustment_in"];
+export const OUT_TYPES: MovementType[] = ["sales", "damage", "giveaway", "adjustment_out"];
+export const TRANSFER_TYPES: MovementType[] = ["transfer_in", "transfer_out"];
 
 /** Label panjang untuk combobox di form. */
 export const TYPE_OPTION_LABEL: Record<MovementType, string> = {
@@ -117,14 +119,12 @@ export const EXCEL_IN_TYPES: Record<string, MovementType> = {
   po: "produksi",
   retur: "retur",
   adjustment: "adjustment_in",
-  transfer: "transfer_in",
 };
 export const EXCEL_OUT_TYPES: Record<string, MovementType> = {
   sales: "sales",
   damage: "damage",
   giveaway: "giveaway",
   adjustment: "adjustment_out",
-  transfer: "transfer_out",
 };
 export const EXCEL_CHANNELS: Record<string, SalesChannel> = {
   shopee: "shopee",

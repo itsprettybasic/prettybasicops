@@ -87,7 +87,8 @@ export function MutasiTimeline({
 }) {
   const router = useRouter();
   const pathname = usePathname();
-  const { today, skuOptions, rowById, openSkuDetail } = useAppData();
+  const { today, skuOptions, rowById, openSkuDetail, warehouses } = useAppData();
+  const multiWarehouse = warehouses.length > 1;
   const [pending, startTransition] = useTransition();
   const [query, setQuery] = useState("");
   const [dir, setDir] = useState<DirFilter>("all");
@@ -393,7 +394,9 @@ export function MutasiTimeline({
                     </td>
                     <td>
                       <div className="font-semibold text-ink">{movementTitle(m)}</div>
-                      <div className="text-[11.5px] text-grey-1">{m.note ? `${m.note} · ${m.doc_no}` : m.doc_no}</div>
+                      <div className="text-[11.5px] text-grey-1">
+                        {[m.note, multiWarehouse ? m.warehouse_name : null, m.doc_no].filter(Boolean).join(" · ")}
+                      </div>
                     </td>
                     <td className={cn("num", m.direction === "in" ? "text-pos" : "text-neg")}>
                       <strong>{signedQty(m.direction, m.qty)}</strong>

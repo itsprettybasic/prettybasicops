@@ -26,6 +26,7 @@ import {
   type OpenPo,
 } from "@/app/actions/stock";
 import { cn } from "@/lib/cn";
+import { useWarehouseStock } from "@/components/stock/use-warehouse-stock";
 
 interface Line {
   key: number;
@@ -53,7 +54,7 @@ export function StockDocumentModal({
   onSaved?: () => void;
 }) {
   const router = useRouter();
-  const { today, skuOptions: activeSkuOptions, rowById } = useAppData();
+  const { today, skuOptions: activeSkuOptions, rowById, warehouses, activeWarehouses, defaultWarehouseId } = useAppData();
   const isIn = preset.direction === "in";
   const isEdit = !!editDoc;
 
@@ -65,6 +66,13 @@ export function StockDocumentModal({
   const [channel, setChannel] = useState<SalesChannel | null>(editDoc ? editDoc.channel : isIn ? null : "shopee");
   const [poId, setPoId] = useState<string | null>(preset.poId ?? null);
   const [note, setNote] = useState(editDoc?.note ?? "");
+  const [warehouseId, setWarehouseId] = useState<string | null>(editDoc?.warehouse_id ?? defaultWarehouseId);
+  const showWarehouse = warehouses.length > 1;
+  const whStock = useWarehouseStock(warehouseId);
+  // Gudang nonaktif tetap muncul kalau itu gudang catatan yang diedit
+  const warehouseOptions: ComboOption[] = warehouses
+    .filter((w) => w.is_active || w.id === editDoc?.warehouse_id)
+    .map((w) => ({ value: w.id, label: w.name, sublabel: w.is_default ? "Gudang utama" : undefined }));
   const [lines, setLines] = useState<Line[]>(() =>
     editDoc ? editDoc.lines.map((l) => newLine(l.sku_id, String(l.qty))) : [newLine(preset.skuId ?? null)],
   );
@@ -77,7 +85,9 @@ export function StockDocumentModal({
     () => new Map(editDoc && !editDoc.voided_at ? editDoc.lines.map((l) => [l.sku_id, l.qty]) : []),
     [editDoc],
   );
-  const stockBefore = (skuId: string, stock: number) => stock + (isIn ? -1 : 1) * (origQty.get(skuId) ?? 0);
+  // Koreksi hanya berlaku kalau gudangnya masih gudang asli catatan itu
+  const stockBefore = (skuId: string, stock: number) =>
+    stock + (editDoc && warehouseId === editDoc.warehouse_id ? (isIn ? -1 : 1) * (origQty.get(skuId) ?? 0) : 0);
 
   // SKU nonaktif yang ada di catatan lama tetap bisa tampil di pilihan
   const skuOptions = useMemo<ComboOption[]>(() => {
@@ -170,6 +180,7 @@ export function StockDocumentModal({
   if (channelRequired && !channel) errors.push("Channel wajib diisi untuk Sales.");
   if (poRequired && !poId) errors.push("Pilih No PO untuk Penerimaan PO.");
   if (!date) errors.push("Tanggal wajib diisi.");
+  if (showWarehouse && !warehouseId) errors.push("Pilih gudang.");
 
   function updateLine(key: number, patch: Partial<Line>) {
     setLines((ls) => ls.map((l) => (l.key === key ? { ...l, ...patch } : l)));
@@ -199,6 +210,7 @@ export function StockDocumentModal({
         doc_date: date,
         channel: isIn ? null : channel,
         note: note.trim() || null,
+        warehouse_id: warehouseId,
         lines: filled.map((l) => ({ sku_id: l.skuId!, qty: l.qtyNum! })),
       });
       setSaving(false);
@@ -219,6 +231,7 @@ export function StockDocumentModal({
       po_id: poRequired ? poId : null,
       note: note.trim() || null,
       source: "manual",
+      warehouse_id: warehouseId,
       lines: filled.map((l) => ({ sku_id: l.skuId!, qty: l.qtyNum! })),
     });
     setSaving(false);
@@ -313,6 +326,22 @@ export function StockDocumentModal({
           )}
         </div>
 
+        {showWarehouse && (
+          <div className="mb-4">
+            <label className="form-label">Gudang {isIn ? "tujuan (barang masuk ke)" : "asal (barang keluar dari)"}</label>
+            <Combobox
+              options={warehouseOptions}
+              value={warehouseId}
+              onChange={(v) => v && setWarehouseId(v)}
+              invalid={submitted && !warehouseId}
+              placeholder="Pilih gudang..."
+            />
+            {activeWarehouses.length > 0 && warehouseId && !warehouses.find((w) => w.id === warehouseId)?.counts_in_ppic && (
+              <div className="form-hint">Stock gudang ini tidak dihitung di Rekomendasi Produksi (PPIC)</div>
+            )}
+          </div>
+        )}
+
         <div className="mb-4">
           <label className="form-label">Catatan (opsional)</label>
           <input
@@ -340,7 +369,8 @@ export function StockDocumentModal({
           <tbody>
             {parsed.map((l, i) => {
               const dup = duplicateOf.get(l.key);
-              const base = l.row ? stockBefore(l.row.id, l.row.stock) : null;
+              const current = l.skuId && whStock ? (whStock[l.skuId] ?? 0) : null;
+              const base = l.skuId && current !== null ? stockBefore(l.skuId, current) : null;
               const after = base !== null && l.qtyNum !== null ? base + (isIn ? l.qtyNum : -l.qtyNum) : null;
               return (
                 <tr key={l.key}>

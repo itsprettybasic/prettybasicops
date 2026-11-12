@@ -15,6 +15,8 @@ export interface DocumentSummary {
   po_id: string | null;
   po_no: string | null;
   vendor_name: string | null;
+  warehouse_id: string;
+  warehouse_name: string | null;
   note: string | null;
   source: string;
   voided_at: string | null;
@@ -120,7 +122,7 @@ export async function getDocumentHistory(
     const totals = async (p_from: string): Promise<TotalsRow[]> => {
       const { data, error } = await supabase.rpc("movement_totals", { p_from, p_to: today });
       if (error) throw new Error(error.message);
-      return ((data ?? []) as TotalsRow[]).filter((r) => r.direction === direction && (!opts.type || r.type === opts.type));
+      return ((data ?? []) as TotalsRow[]).filter((r) => r.direction === direction && types.includes(r.type));
     };
     const sum = (rows: TotalsRow[]): PeriodTotal => ({
       qty: rows.reduce((s, r) => s + r.qty, 0),
@@ -133,7 +135,7 @@ export async function getDocumentHistory(
         supabase
           .from("v_document_summary")
           .select(
-            "id, doc_no, direction, type, doc_date, channel, po_id, po_no, vendor_name, note, source, voided_at, void_reason, created_by_name, created_at, sku_count, total_qty, product_names",
+            "id, doc_no, direction, type, doc_date, channel, po_id, po_no, vendor_name, warehouse_id, warehouse_name, note, source, voided_at, void_reason, created_by_name, created_at, sku_count, total_qty, product_names",
           )
           .eq("direction", direction)
           .in("type", types)

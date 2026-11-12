@@ -192,3 +192,49 @@ console.log('packing OK', (await db.query(`select * from pack_storage_summary()`
   assert(log.deleted_by_name === 'Jose Putra', 'nama penghapus');
   console.log('log hapus OK');
 }
+{
+  // ── Gudang & Transfer Stock ───────────────────────
+  const assert = (cond, msg) => { if (!cond) { console.error('FAIL:', msg); process.exit(1); } };
+  const throws = async (q, args) => { try { await db.query(q, args); return false; } catch { return true; } };
+  const ppic = async () => (await db.query(`select stock from v_sku_stock where sku_id=$1`, [sku])).rows[0].stock;
+  const wh = async (w) => (await db.query(`select stock from v_sku_warehouse_stock where sku_id=$1 and warehouse_id=$2`, [sku, w])).rows[0]?.stock ?? 0;
+  const utama = (await db.query(`select id from warehouses where is_default`)).rows[0].id;
+  assert((await db.query(`select count(*)::int n from stock_documents where warehouse_id is null or warehouse_id <> $1`, [utama])).rows[0].n === 0, 'semua catatan lama di Gudang Utama');
+  const toko = (await db.query(`insert into warehouses(name) values ('Gudang Toko') returning id`)).rows[0].id;
+  const p0 = await ppic(), u0 = await wh(utama);
+  assert(p0 === u0, 'PPIC = Gudang Utama');
+  // catatan masuk ke gudang lain tidak dihitung PPIC
+  await db.query(`select create_stock_document('in','retur','2026-11-06',null,null,null,'manual',$1,$2)`, [JSON.stringify([{sku_id: sku, qty: 7}]), toko]);
+  assert(await wh(toko) === 7 && await ppic() === p0, 'retur ke Gudang Toko tidak masuk PPIC');
+  // transfer 3 dari Utama → Toko
+  const t = (await db.query(`select save_stock_transfer(null,'2026-11-07',$1,$2,'kirim',$3) id`, [utama, toko, JSON.stringify([{sku_id: sku, qty: 3}])])).rows[0].id;
+  assert(await wh(utama) === u0 - 3 && await wh(toko) === 10, 'transfer memindahkan stock');
+  const sum = (await db.query(`select * from v_transfer_summary where id=$1`, [t])).rows[0];
+  assert(sum.transfer_no === 'TRF-20261107-001' && sum.total_qty === 3 && sum.from_warehouse_name === 'Gudang Utama' && sum.to_warehouse_name === 'Gudang Toko', 'ringkasan transfer');
+  // edit: qty 5, arah dibalik
+  await db.query(`select save_stock_transfer($1,'2026-11-08',$2,$3,'balik',$4)`, [t, toko, utama, JSON.stringify([{sku_id: sku, qty: 5}])]);
+  assert(await wh(utama) === u0 + 5 && await wh(toko) === 2, 'edit transfer');
+  assert((await db.query(`select count(*)::int n from stock_documents where transfer_id=$1 and doc_date='2026-11-08'`, [t])).rows[0].n === 2, 'tanggal kedua catatan ikut');
+  const doc = (await db.query(`select id from stock_documents where transfer_id=$1 limit 1`, [t])).rows[0].id;
+  assert(await throws(`select delete_stock_document($1)`, [doc]), 'catatan transfer tidak bisa dihapus sendiri');
+  assert(await throws(`select update_stock_document($1,'transfer_out','2026-11-08',null,null,$2)`, [doc, JSON.stringify([{sku_id: sku, qty: 1}])]), 'catatan transfer tidak bisa diedit sendiri');
+  assert(await throws(`select create_stock_document('out','transfer_out','2026-11-08',null,null,null,'manual',$1)`, [JSON.stringify([{sku_id: sku, qty: 1}])]), 'transfer manual ditolak');
+  assert(await throws(`select save_stock_transfer(null,'2026-11-07',$1,$1,null,$2)`, [utama, JSON.stringify([{sku_id: sku, qty: 1}])]), 'gudang sama ditolak');
+  // sku_movements semua gudang mengabaikan transfer
+  const mv = (await db.query(`select * from sku_movements('2026-11-08','2026-11-08')`)).rows;
+  assert(mv.length === 0, 'transfer tidak dihitung di masuk/keluar total');
+  const mvToko = (await db.query(`select * from sku_movements('2026-11-08','2026-11-08',$1)`, [toko])).rows[0];
+  assert(mvToko.qty_out === 5, 'masuk/keluar per gudang ikut transfer');
+  // opname per gudang
+  const op = (await db.query(`select create_stock_opname('2026-11-09',null,$1,$2) r`, [JSON.stringify([{sku_id: sku, counted: 0}]), toko])).rows[0].r;
+  assert(op.minus === 2 && await wh(toko) === 0 && await wh(utama) === u0 + 5, 'opname hanya gudang itu');
+  // hapus transfer
+  await db.query(`select delete_stock_transfer($1)`, [t]);
+  assert(await wh(utama) === u0, 'hapus transfer mengembalikan stock');
+  assert((await db.query(`select count(*)::int n from stock_document_deletions where type in ('transfer_in','transfer_out')`)).rows[0].n === 2, 'hapus transfer tercatat di log');
+  // gudang nonaktif ditolak
+  await db.query(`update warehouses set is_active=false where id=$1`, [toko]);
+  assert(await throws(`select create_stock_document('in','retur','2026-11-06',null,null,null,'manual',$1,$2)`, [JSON.stringify([{sku_id: sku, qty: 1}]), toko]), 'gudang nonaktif ditolak');
+  assert(await throws(`update warehouses set is_active=false where id=$1`, [utama]), 'gudang utama tidak bisa nonaktif');
+  console.log('gudang & transfer OK');
+}

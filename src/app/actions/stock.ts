@@ -26,6 +26,7 @@ export async function createStockDocument(input: StockDocumentInput): Promise<Ac
     p_note: d.note,
     p_source: d.source,
     p_lines: d.lines,
+    p_warehouse_id: d.warehouse_id ?? null,
   });
   if (error) return fail(error.message);
   revalidatePath("/", "layout");
@@ -49,6 +50,7 @@ export async function createStockDocuments(inputs: StockDocumentInput[]): Promis
       p_note: d.note,
       p_source: d.source,
       p_lines: d.lines,
+      p_warehouse_id: d.warehouse_id ?? null,
     });
     if (error) {
       if (count > 0) revalidatePath("/", "layout");
@@ -71,6 +73,7 @@ export interface OpnameResult {
 export async function createStockOpname(input: {
   doc_date: string;
   note: string;
+  warehouse_id: string | null;
   lines: { sku_id: string; counted: number }[];
 }): Promise<ActionResult<OpnameResult>> {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(input.doc_date)) return fail("Tanggal tidak valid");
@@ -81,6 +84,7 @@ export async function createStockOpname(input: {
     p_doc_date: input.doc_date,
     p_note: input.note,
     p_lines: input.lines,
+    p_warehouse_id: input.warehouse_id,
   });
   if (error) return fail(error.message);
   revalidatePath("/", "layout");
@@ -106,6 +110,9 @@ export interface DocumentDetail {
   po_id: string | null;
   po_no: string | null;
   vendor_name: string | null;
+  warehouse_id: string;
+  warehouse_name: string | null;
+  transfer_id: string | null;
   note: string | null;
   source: string;
   voided_at: string | null;
@@ -122,21 +129,23 @@ export async function getDocumentDetail(id: string): Promise<ActionResult<Docume
   const { data, error } = await supabase
     .from("stock_documents")
     .select(
-      "id, doc_no, direction, type, doc_date, channel, po_id, note, source, voided_at, void_reason, created_by_name, created_at, updated_by_name, updated_at, purchase_orders(po_no, vendors(name)), stock_document_lines(sku_id, qty, skus(code, color, size, products(name)))",
+      "id, doc_no, direction, type, doc_date, channel, po_id, warehouse_id, transfer_id, note, source, voided_at, void_reason, created_by_name, created_at, updated_by_name, updated_at, warehouses(name), purchase_orders(po_no, vendors(name)), stock_document_lines(sku_id, qty, skus(code, color, size, products(name)))",
     )
     .eq("id", id)
     .single();
   if (error) return fail(error.message);
   const row = data as unknown as {
+    warehouses: { name: string } | null;
     purchase_orders: { po_no: string; vendors: { name: string } | null } | null;
     stock_document_lines: { sku_id: string; qty: number; skus: { code: string; color: string; size: string; products: { name: string } } }[];
-  } & Omit<DocumentDetail, "lines" | "po_no" | "vendor_name">;
-  const { purchase_orders, stock_document_lines, ...rest } = row;
+  } & Omit<DocumentDetail, "lines" | "po_no" | "vendor_name" | "warehouse_name">;
+  const { purchase_orders, stock_document_lines, warehouses, ...rest } = row;
   return {
     ok: true,
     data: {
       ...rest,
       po_no: purchase_orders?.po_no ?? null,
+      warehouse_name: warehouses?.name ?? null,
       vendor_name: purchase_orders?.vendors?.name ?? null,
       lines: stock_document_lines
         .map((l) => ({
@@ -236,6 +245,8 @@ export async function updateStockDocument(input: {
   doc_date: string;
   channel: SalesChannel | null;
   note: string | null;
+  /** null = gudang tidak diubah */
+  warehouse_id?: string | null;
   lines: { sku_id: string; qty: number }[];
 }): Promise<ActionResult> {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(input.doc_date)) return fail("Tanggal tidak valid");
@@ -251,6 +262,7 @@ export async function updateStockDocument(input: {
     p_channel: input.channel,
     p_note: input.note,
     p_lines: input.lines,
+    p_warehouse_id: input.warehouse_id ?? null,
   });
   if (error) return fail(error.message);
   revalidatePath("/", "layout");
@@ -284,6 +296,7 @@ export interface SkuMovement {
   type: MovementType;
   channel: SalesChannel | null;
   po_no: string | null;
+  warehouse_name: string | null;
   note: string | null;
   qty: number;
   /** Saldo setelah mutasi ini */
@@ -301,7 +314,7 @@ export async function getSkuMovements(skuId: string, sinceDate?: string): Promis
     const { data, error } = await supabase
       .from("stock_document_lines")
       .select(
-        "qty, stock_documents!inner(id, doc_no, doc_date, created_at, direction, type, channel, note, voided_at, purchase_orders(po_no))",
+        "qty, stock_documents!inner(id, doc_no, doc_date, created_at, direction, type, channel, note, voided_at, warehouses(name), purchase_orders(po_no))",
       )
       .eq("sku_id", skuId)
       .is("stock_documents.voided_at", null)
@@ -319,6 +332,7 @@ export async function getSkuMovements(skuId: string, sinceDate?: string): Promis
           channel: SalesChannel | null;
           note: string | null;
           purchase_orders: { po_no: string } | null;
+          warehouses: { name: string } | null;
         };
       }).stock_documents;
       all.push({
@@ -330,6 +344,7 @@ export async function getSkuMovements(skuId: string, sinceDate?: string): Promis
         type: d.type,
         channel: d.channel,
         po_no: d.purchase_orders?.po_no ?? null,
+        warehouse_name: d.warehouses?.name ?? null,
         note: d.note,
         qty: row.qty as number,
         balance: 0,

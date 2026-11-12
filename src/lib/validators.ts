@@ -17,6 +17,8 @@ export const stockDocumentSchema = z
     po_id: z.string().uuid().nullable(),
     note: z.string().max(500).nullable(),
     source: z.enum(["manual", "excel"]),
+    /** null / kosong = Gudang Utama */
+    warehouse_id: z.string().uuid().nullable().optional(),
     lines: z.array(lineSchema).min(1, "Minimal 1 SKU"),
   })
   .superRefine((d, ctx) => {

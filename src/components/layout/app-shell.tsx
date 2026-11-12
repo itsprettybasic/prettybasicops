@@ -20,6 +20,8 @@ import {
   LineChart,
   LogOut,
   Menu,
+  Repeat,
+  Warehouse,
   Package,
   ScanBarcode,
   Settings,
@@ -62,6 +64,13 @@ const NAV: {
       { href: "/barang-masuk", label: "Barang Masuk", icon: ArrowDown },
       { href: "/barang-keluar", label: "Barang Keluar", icon: ArrowUp },
       { href: "/stock-opname", label: "Stock Opname", icon: ClipboardCheck },
+    ],
+  },
+  {
+    section: "Gudang",
+    items: [
+      { href: "/gudang", label: "Stock per Gudang", icon: Warehouse },
+      { href: "/transfer", label: "Transfer Stock", icon: Repeat },
     ],
   },
   {

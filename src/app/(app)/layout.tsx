@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { AppShell } from "@/components/layout/app-shell";
 import { getCurrentUser } from "@/lib/data/profile";
 import { getPpicData, type PpicData } from "@/lib/data/ppic";
+import { getWarehouses } from "@/lib/data/warehouses";
 import { AppDataProvider } from "@/components/providers/app-data";
 import { DEFAULT_PARAMS, monthStart } from "@/lib/ppic";
 import { todayJakarta } from "@/lib/format";
@@ -14,6 +15,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   const { profile } = current;
 
   let data: PpicData;
+  const warehousesPromise = getWarehouses();
   try {
     data = await getPpicData();
   } catch {
@@ -26,10 +28,11 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       rows: [],
     };
   }
+  const warehouses = await warehousesPromise;
   const alertCount = data.rows.filter((r) => r.status === "HABIS" || r.status === "PRODUKSI").length;
 
   return (
-    <AppDataProvider today={data.today} months={data.months} params={data.params} rows={data.rows}>
+    <AppDataProvider today={data.today} months={data.months} params={data.params} rows={data.rows} warehouses={warehouses}>
       <AppShell userName={profile.full_name} role={profile.role} alertCount={alertCount}>
         {children}
       </AppShell>

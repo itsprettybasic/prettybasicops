@@ -28,6 +28,7 @@ import {
 import { fmtDate, fmtInt, fmtSigned, fmtTime } from "@/lib/format";
 import { cn } from "@/lib/cn";
 import type { PpicRow } from "@/lib/data/ppic";
+import { useWarehouseStock } from "@/components/stock/use-warehouse-stock";
 
 export interface LastOpname {
   doc_date: string;
@@ -39,20 +40,25 @@ type Filter = "all" | "todo" | "done" | "diff";
 
 const DRAFT_KEY = "pb-opname-draft";
 
-function loadDraft(): Record<string, string> {
+/** Draft per gudang; gudang utama memakai key lama supaya draft yang sudah ada tidak hilang. */
+function draftKey(warehouseId: string | null, isDefault: boolean) {
+  return isDefault || !warehouseId ? DRAFT_KEY : `${DRAFT_KEY}:${warehouseId}`;
+}
+
+function loadDraft(key: string): Record<string, string> {
   try {
-    const raw = localStorage.getItem(DRAFT_KEY);
+    const raw = localStorage.getItem(key);
     return raw ? (JSON.parse(raw) as Record<string, string>) : {};
   } catch {
     return {};
   }
 }
 
-function saveDraft(counts: Record<string, string>) {
+function saveDraft(key: string, counts: Record<string, string>) {
   try {
     if (Object.keys(counts).length)
-      localStorage.setItem(DRAFT_KEY, JSON.stringify(counts));
-    else localStorage.removeItem(DRAFT_KEY);
+      localStorage.setItem(key, JSON.stringify(counts));
+    else localStorage.removeItem(key);
   } catch {
     // penyimpanan browser tidak tersedia — draft hanya hilang saat refresh
   }
@@ -66,7 +72,13 @@ function parseCount(v: string | undefined): number | null {
 
 export function StockOpname({ lastOpname }: { lastOpname: LastOpname | null }) {
   const router = useRouter();
-  const { rows, today } = useAppData();
+  const { rows, today, warehouses, activeWarehouses, defaultWarehouseId } = useAppData();
+  const [warehouseId, setWarehouseId] = useState<string | null>(defaultWarehouseId);
+  const [stockVersion, setStockVersion] = useState(0);
+  const whStock = useWarehouseStock(warehouseId, stockVersion);
+  const warehouse = warehouses.find((w) => w.id === warehouseId) ?? null;
+  const key = draftKey(warehouseId, !!warehouse?.is_default);
+  const systemStock = (r: PpicRow) => whStock?.[r.id] ?? 0;
   const activeRows = useMemo(
     () =>
       rows
@@ -75,7 +87,7 @@ export function StockOpname({ lastOpname }: { lastOpname: LastOpname | null }) {
     [rows],
   );
   const [counts, setCounts] = useState<Record<string, string>>({});
-  const [loaded, setLoaded] = useState(false);
+  const [loadedKey, setLoadedKey] = useState<string | null>(null);
   const [query, setQuery] = useState("");
   const [product, setProduct] = useState("");
   const [filter, setFilter] = useState<Filter>("all");
@@ -87,12 +99,12 @@ export function StockOpname({ lastOpname }: { lastOpname: LastOpname | null }) {
 
   // Draft hitungan disimpan di browser supaya tidak hilang kalau halaman tertutup di tengah opname
   useEffect(() => {
-    setCounts(loadDraft());
-    setLoaded(true);
-  }, []);
+    setCounts(loadDraft(key));
+    setLoadedKey(key);
+  }, [key]);
   useEffect(() => {
-    if (loaded) saveDraft(counts);
-  }, [counts, loaded]);
+    if (loadedKey === key) saveDraft(key, counts);
+  }, [counts, key, loadedKey]);
 
   const products = useMemo(() => {
     const m = new Map<string, string>();
@@ -105,10 +117,10 @@ export function StockOpname({ lastOpname }: { lastOpname: LastOpname | null }) {
       activeRows.map((r) => {
         const counted = parseCount(counts[r.id]);
         const diff =
-          counted === null || Number.isNaN(counted) ? null : counted - r.stock;
+          counted === null || Number.isNaN(counted) || !whStock ? null : counted - (whStock[r.id] ?? 0);
         return { row: r, counted, diff };
       }),
-    [activeRows, counts],
+    [activeRows, counts, whStock],
   );
 
   const stats = useMemo(() => {
@@ -198,7 +210,7 @@ export function StockOpname({ lastOpname }: { lastOpname: LastOpname | null }) {
         { header: "Produk", width: 26, value: (r: PpicRow) => r.product_name },
         { header: "Warna", width: 16, value: (r: PpicRow) => r.color },
         { header: "Size", width: 10, value: (r: PpicRow) => r.size },
-        { header: "Stock Sistem", width: 14, value: (r: PpicRow) => r.stock },
+        { header: "Stock Sistem", width: 14, value: (r: PpicRow) => systemStock(r) },
         {
           header: "Stock Fisik",
           width: 14,
@@ -207,7 +219,8 @@ export function StockOpname({ lastOpname }: { lastOpname: LastOpname | null }) {
       ],
     };
     const wb = await buildWorkbook([sheet as SheetSpec<unknown>]);
-    await downloadWorkbook(wb, `pretty-basic-stock-opname-${today}.xlsx`);
+    const suffix = warehouse && !warehouse.is_default ? `-${warehouse.name.toLowerCase().replace(/[^a-z0-9]+/g, "-")}` : "";
+    await downloadWorkbook(wb, `pretty-basic-stock-opname${suffix}-${today}.xlsx`);
   }
 
   async function uploadSheet(file: File) {
@@ -273,6 +286,10 @@ export function StockOpname({ lastOpname }: { lastOpname: LastOpname | null }) {
   }
 
   function askSave() {
+    if (!whStock) {
+      toast.error("Stock gudang masih dimuat, coba lagi sebentar");
+      return;
+    }
     if (stats.invalid) {
       toast.error(
         `${stats.invalid} isian stock fisik tidak valid (harus angka bulat ≥ 0)`,
@@ -290,7 +307,7 @@ export function StockOpname({ lastOpname }: { lastOpname: LastOpname | null }) {
     const lines = entries
       .filter((e) => e.counted !== null && !Number.isNaN(e.counted))
       .map((e) => ({ sku_id: e.row.id, counted: e.counted! }));
-    const res = await createStockOpname({ doc_date: docDate, note, lines });
+    const res = await createStockOpname({ doc_date: docDate, note, warehouse_id: warehouseId, lines });
     if (!res.ok) {
       toast.error(`Gagal menyimpan opname: ${res.error}`);
       return;
@@ -307,6 +324,7 @@ export function StockOpname({ lastOpname }: { lastOpname: LastOpname | null }) {
         description: `${fmtInt(d.counted)} SKU dihitung${d.changed ? ` · +${fmtInt(d.plus)} / −${fmtInt(d.minus)} pcs` : ""}`,
       },
     );
+    setStockVersion((v) => v + 1);
     router.refresh();
   }
 
@@ -459,7 +477,7 @@ export function StockOpname({ lastOpname }: { lastOpname: LastOpname | null }) {
                   <td>
                     <SkuCell label={e.row.label} code={e.row.code} />
                   </td>
-                  <td className="num text-ink-3">{fmtInt(e.row.stock)}</td>
+                  <td className="num text-ink-3">{whStock ? fmtInt(systemStock(e.row)) : "…"}</td>
                   <td className="num">
                     <input
                       ref={(el) => {
@@ -500,7 +518,7 @@ export function StockOpname({ lastOpname }: { lastOpname: LastOpname | null }) {
                       <button
                         type="button"
                         onClick={() =>
-                          setCount(e.row.id, String(Math.max(0, e.row.stock)))
+                          setCount(e.row.id, String(Math.max(0, systemStock(e.row))))
                         }
                         className="cursor-pointer rounded-md px-2 py-1 text-[12px] font-semibold whitespace-nowrap text-primary-2 hover:bg-primary-tint"
                         title="Isi stock fisik sama dengan stock sistem"
@@ -525,6 +543,22 @@ export function StockOpname({ lastOpname }: { lastOpname: LastOpname | null }) {
       </Panel>
 
       <div className="flex flex-wrap items-end gap-3 rounded-[14px] border border-line bg-white px-4 py-4 shadow-[0_8px_24px_rgba(15,23,42,0.08)] sm:sticky sm:bottom-4 sm:z-10 sm:flex-nowrap sm:px-[22px]">
+        {warehouses.length > 1 && (
+          <div className="w-full sm:w-auto">
+            <label className="form-label">Gudang</label>
+            <select
+              className="select-input w-full sm:w-auto"
+              value={warehouseId ?? ""}
+              onChange={(e) => setWarehouseId(e.target.value || null)}
+            >
+              {activeWarehouses.map((w) => (
+                <option key={w.id} value={w.id}>
+                  {w.name}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
         <div className="w-full sm:w-auto">
           <label className="form-label">Tanggal Opname</label>
           <input
@@ -563,7 +597,13 @@ export function StockOpname({ lastOpname }: { lastOpname: LastOpname | null }) {
           <div className="space-y-2">
             <p>
               <strong>{fmtInt(stats.counted)} SKU</strong> dihitung pada{" "}
-              <strong>{fmtDate(docDate)}</strong>.
+              <strong>{fmtDate(docDate)}</strong>
+              {warehouses.length > 1 && warehouse ? (
+                <>
+                  {" "}di <strong>{warehouse.name}</strong>
+                </>
+              ) : null}
+              .
             </p>
             {stats.changed ? (
               <p>

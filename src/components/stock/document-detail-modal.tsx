@@ -46,7 +46,7 @@ export function DocumentDetailModal({
   initialAction?: "edit" | "delete";
 }) {
   const router = useRouter();
-  const { rowById, openSkuDetail } = useAppData();
+  const { rowById, openSkuDetail, warehouses } = useAppData();
   const [doc, setDoc] = useState<DocumentDetail | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [confirmDelete, setConfirmDelete] = useState(initialAction === "delete");
@@ -186,6 +186,7 @@ export function DocumentDetailModal({
               <Field label="Sumber">
                 <SourceLabel source={doc.source} />
               </Field>
+              {warehouses.length > 1 && <Field label="Gudang">{doc.warehouse_name ?? "—"}</Field>}
               <div className="col-span-2 md:col-span-4">
                 <Field label="Catatan">{doc.note || <span className="text-grey-2">—</span>}</Field>
                 {doc.updated_at && (

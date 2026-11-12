@@ -44,6 +44,7 @@ function searchText(d: DocumentSummary) {
     d.note ?? "",
     d.po_no ?? "",
     d.vendor_name ?? "",
+    d.warehouse_name ?? "",
     d.channel ? CHANNEL_LABEL[d.channel] : "",
     d.created_by_name ?? "",
     TYPE_LABEL[d.type],
@@ -59,7 +60,8 @@ function searchText(d: DocumentSummary) {
 export function DocumentHistory({ data, receipts = false }: { data: DocumentHistoryData; receipts?: boolean }) {
   const router = useRouter();
   const pathname = usePathname();
-  const { openStockModal, openUpload } = useAppData();
+  const { openStockModal, openUpload, warehouses } = useAppData();
+  const multiWarehouse = warehouses.length > 1;
   const [isPending, startTransition] = useTransition();
 
   const isIn = data.direction === "in";
@@ -345,6 +347,9 @@ export function DocumentHistory({ data, receipts = false }: { data: DocumentHist
                         <Badge tone={voided ? "grey" : TYPE_TONE[d.type]}>{TYPE_LABEL[d.type]}</Badge>
                         {voided && <Badge tone="neg">Dibatalkan</Badge>}
                       </div>
+                      {multiWarehouse && d.warehouse_name && (
+                        <div className="mt-1 text-[11.5px] whitespace-nowrap text-grey-1">{d.warehouse_name}</div>
+                      )}
                     </td>
                     <td className="whitespace-nowrap">
                       {isIn ? (

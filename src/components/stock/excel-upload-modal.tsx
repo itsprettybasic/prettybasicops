@@ -347,9 +347,11 @@ export function ExcelUploadModal({
   onOpenChange: (open: boolean) => void;
 }) {
   const router = useRouter();
-  const { today, rows: ppicRows } = useAppData();
+  const { today, rows: ppicRows, warehouses, activeWarehouses, defaultWarehouseId } = useAppData();
+  const [warehouseId, setWarehouseId] = useState<string | null>(defaultWarehouseId);
   const config = KIND_CONFIG[kind];
   const isMaster = kind === "master-sku";
+  const showWarehouse = !isMaster && warehouses.length > 1;
   const isIn = kind === "masuk";
 
   const inputRef = useRef<HTMLInputElement>(null);
@@ -559,7 +561,7 @@ export function ExcelUploadModal({
             (productsCreated ? ` · ${fmtInt(productsCreated)} produk baru` : ""),
         );
       } else {
-        const res = await createStockDocuments(documents);
+        const res = await createStockDocuments(documents.map((d) => ({ ...d, warehouse_id: warehouseId })));
         if (!res.ok) {
           toast.error(`Import gagal: ${res.error}`);
           router.refresh();
@@ -610,6 +612,27 @@ export function ExcelUploadModal({
         </>
       }
     >
+      {showWarehouse && (
+        <div className="mb-4 flex flex-wrap items-center gap-2.5 rounded-[10px] border border-line px-4 py-3">
+          <label className="text-[13px] font-semibold text-ink" htmlFor="upload-warehouse">
+            {isIn ? "Barang masuk ke gudang" : "Barang keluar dari gudang"}
+          </label>
+          <select
+            id="upload-warehouse"
+            className="select-input"
+            value={warehouseId ?? ""}
+            disabled={importing}
+            onChange={(e) => setWarehouseId(e.target.value || null)}
+          >
+            {activeWarehouses.map((w) => (
+              <option key={w.id} value={w.id}>
+                {w.name}
+              </option>
+            ))}
+          </select>
+          <span className="text-[11.5px] text-grey-1">Semua baris di file masuk ke gudang ini</span>
+        </div>
+      )}
       {step === 1 ? (
         <>
           <div
