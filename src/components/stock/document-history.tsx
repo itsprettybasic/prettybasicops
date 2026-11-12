@@ -14,7 +14,7 @@ import { InfoBanner } from "@/components/ui/info-banner";
 import { EmptyRow, Pagination, SkeletonRows } from "@/components/ui/table-parts";
 import { useAppData } from "@/components/providers/app-data";
 import { DocumentButton } from "@/components/print/document-viewer";
-import { receiptName } from "@/lib/doc-names";
+import { receiptName, stockDocName } from "@/lib/doc-names";
 import { DocumentDetailModal } from "@/components/stock/document-detail-modal";
 import { DeletedDocumentsModal } from "@/components/stock/deleted-documents-modal";
 import {
@@ -22,6 +22,7 @@ import {
   IN_TYPES,
   OUT_TYPES,
   TYPE_LABEL,
+  TYPE_OPTION_LABEL,
   TYPE_TONE,
   type MovementType,
 } from "@/lib/constants";
@@ -394,6 +395,14 @@ export function DocumentHistory({ data, receipts = false }: { data: DocumentHist
                     <td className="whitespace-nowrap text-right" onClick={(e) => e.stopPropagation()}>
                       {d.type === "produksi" && !voided && (
                         <DocumentButton iconOnly url={`/cetak/penerimaan/${d.id}`} fileName={receiptName({ vendor_name: d.vendor_name, batch: d.po_batch, doc_date: d.doc_date })} title="Bukti Penerimaan" />
+                      )}
+                      {d.type !== "produksi" && (
+                        <DocumentButton
+                          iconOnly
+                          url={`/cetak/stock/${d.id}`}
+                          fileName={stockDocName({ direction: d.direction, type_label: TYPE_OPTION_LABEL[d.type], channel_label: d.channel ? CHANNEL_LABEL[d.channel] : null, doc_date: d.doc_date, doc_no: d.doc_no })}
+                          title={d.direction === "in" ? "Bukti Barang Masuk" : "Bukti Barang Keluar"}
+                        />
                       )}
                       <button
                         type="button"

@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { DocumentButton } from "@/components/print/document-viewer";
-import { receiptName } from "@/lib/doc-names";
+import { receiptName, stockDocName } from "@/lib/doc-names";
 import { Modal } from "@/components/ui/modal";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -110,6 +110,14 @@ export function DocumentDetailModal({
             <>
               {isReceipt && (
               <DocumentButton url={`/cetak/penerimaan/${doc.id}`} fileName={receiptName({ vendor_name: doc.vendor_name, batch: doc.po_batch, doc_date: doc.doc_date })} title="Bukti Penerimaan" label="Bukti Penerimaan" />
+              )}
+              {!isReceipt && (
+                <DocumentButton
+                  url={`/cetak/stock/${doc.id}`}
+                  fileName={stockDocName({ direction: doc.direction, type_label: TYPE_OPTION_LABEL[doc.type], channel_label: doc.channel ? CHANNEL_LABEL[doc.channel] : null, doc_date: doc.doc_date, doc_no: doc.doc_no })}
+                  title={isIn ? "Bukti Barang Masuk" : "Bukti Barang Keluar"}
+                  label="Dokumen"
+                />
               )}
               <Button onClick={() => setEditing(true)}>
                 <Pencil className="h-3.5 w-3.5" /> Edit

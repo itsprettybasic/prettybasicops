@@ -55,3 +55,14 @@ export function receiptName(r: {
 }): string {
   return join("Bukti Penerimaan Barang", shortVendor(r.vendor_name), batchLabel(r.batch), day(r.doc_date));
 }
+
+/** "Barang Keluar Sales TikTok Shop 11 Nov 2026 OUT-20261111-002" — sama dengan No Catatan di riwayat. */
+export function stockDocName(d: {
+  direction: "in" | "out";
+  type_label: string;
+  channel_label?: string | null;
+  doc_date: string;
+  doc_no: string;
+}): string {
+  return join(d.direction === "in" ? "Barang Masuk" : "Barang Keluar", d.type_label, d.channel_label, day(d.doc_date), d.doc_no);
+}
