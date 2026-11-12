@@ -13,11 +13,12 @@ import { SkuCell } from "@/components/ui/table-parts";
 import { StatusBadge } from "@/components/ui/badge";
 import { STATUS_PRIORITY } from "@/lib/ppic";
 import { useAppData } from "@/components/providers/app-data";
-import { getNextPoNo, listVendors, savePurchaseOrder, type PoDetail, type Vendor } from "@/app/actions/po";
+import { getNextPoBatch, getNextPoNo, listVendors, savePurchaseOrder, type PoDetail, type Vendor } from "@/app/actions/po";
 import { poSchema } from "@/lib/validators";
 import { fmtDate, fmtInt, fmtRupiah } from "@/lib/format";
 import { cn } from "@/lib/cn";
 import { VendorFormModal } from "./vendor-form-modal";
+import { poName } from "@/lib/doc-names";
 
 interface Line {
   skuId: string;
@@ -65,6 +66,9 @@ export function PoFormModal({
     po ? (po.expected_date ?? "") : format(addDays(parseISO(today), params.lead_time_days), "yyyy-MM-dd"),
   );
   const [vendorId, setVendorId] = useState<string | null>(po?.vendor_id ?? null);
+  const [batch, setBatch] = useState(po?.batch ?? "");
+  // Batch diisi otomatis (batch berikutnya untuk vendor) sampai user mengetik sendiri
+  const [batchTouched, setBatchTouched] = useState(!!po);
   const [vendors, setVendors] = useState<Vendor[] | null>(null);
   const [note, setNote] = useState(po?.note ?? "");
   const [lines, setLines] = useState<Line[]>(() =>
@@ -121,6 +125,17 @@ export function PoFormModal({
       alive = false;
     };
   }, [today, po]);
+
+  useEffect(() => {
+    if (batchTouched || !vendorId) return;
+    let alive = true;
+    getNextPoBatch(vendorId).then((res) => {
+      if (alive && res.ok) setBatch(res.data);
+    });
+    return () => {
+      alive = false;
+    };
+  }, [vendorId, batchTouched]);
 
   const vendorOptions: ComboOption[] = (vendors ?? []).map((v) => ({
     value: v.id,
@@ -186,6 +201,7 @@ export function PoFormModal({
     const input = {
       id: po?.id ?? null,
       po_no: poNo,
+      batch: batch.trim() || null,
       vendor_id: vendorId ?? "",
       po_date: poDate,
       expected_date: expected || null,
@@ -259,7 +275,7 @@ export function PoFormModal({
           · Kedatangan <strong>{fmtDate(expected || null)}</strong>
         </InfoBanner>
 
-        <div className="grid grid-cols-1 gap-x-4 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="grid grid-cols-1 gap-x-4 sm:grid-cols-2 lg:grid-cols-5">
           <div className="mb-4">
             <label className="form-label">No PO</label>
             <input
@@ -300,7 +316,29 @@ export function PoFormModal({
               footerAction={{ label: "+ Tambah vendor baru", onSelect: (q) => setNewVendorName(q) }}
             />
           </div>
+          <div className="mb-4">
+            <label className="form-label">Batch</label>
+            <input
+              className="form-input"
+              value={batch}
+              maxLength={40}
+              inputMode="numeric"
+              placeholder={vendorId ? "Mis. 3" : "Pilih vendor dulu"}
+              onChange={(e) => {
+                setBatchTouched(true);
+                setBatch(e.target.value);
+              }}
+            />
+          </div>
         </div>
+        {vendorId && (
+          <div className="-mt-2 mb-3 text-[11.5px] text-grey-1">
+            Nama dokumen:{" "}
+            <span className="font-semibold text-ink-3">
+              {poName({ vendor_name: vendors?.find((v) => v.id === vendorId)?.name ?? po?.vendor.name, batch, po_date: poDate || today })}
+            </span>
+          </div>
+        )}
 
         <div className="mt-1 mb-2 flex flex-col items-stretch justify-between gap-2 sm:flex-row sm:items-end sm:gap-4">
           <div>

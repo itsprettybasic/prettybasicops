@@ -109,6 +109,7 @@ export interface DocumentDetail {
   channel: SalesChannel | null;
   po_id: string | null;
   po_no: string | null;
+  po_batch: string | null;
   vendor_name: string | null;
   warehouse_id: string;
   warehouse_name: string | null;
@@ -129,22 +130,23 @@ export async function getDocumentDetail(id: string): Promise<ActionResult<Docume
   const { data, error } = await supabase
     .from("stock_documents")
     .select(
-      "id, doc_no, direction, type, doc_date, channel, po_id, warehouse_id, transfer_id, note, source, voided_at, void_reason, created_by_name, created_at, updated_by_name, updated_at, warehouses(name), purchase_orders(po_no, vendors(name)), stock_document_lines(sku_id, qty, skus(code, color, size, products(name)))",
+      "id, doc_no, direction, type, doc_date, channel, po_id, warehouse_id, transfer_id, note, source, voided_at, void_reason, created_by_name, created_at, updated_by_name, updated_at, warehouses(name), purchase_orders(po_no, batch, vendors(name)), stock_document_lines(sku_id, qty, skus(code, color, size, products(name)))",
     )
     .eq("id", id)
     .single();
   if (error) return fail(error.message);
   const row = data as unknown as {
     warehouses: { name: string } | null;
-    purchase_orders: { po_no: string; vendors: { name: string } | null } | null;
+    purchase_orders: { po_no: string; batch: string | null; vendors: { name: string } | null } | null;
     stock_document_lines: { sku_id: string; qty: number; skus: { code: string; color: string; size: string; products: { name: string } } }[];
-  } & Omit<DocumentDetail, "lines" | "po_no" | "vendor_name" | "warehouse_name">;
+  } & Omit<DocumentDetail, "lines" | "po_no" | "po_batch" | "vendor_name" | "warehouse_name">;
   const { purchase_orders, stock_document_lines, warehouses, ...rest } = row;
   return {
     ok: true,
     data: {
       ...rest,
       po_no: purchase_orders?.po_no ?? null,
+      po_batch: purchase_orders?.batch ?? null,
       warehouse_name: warehouses?.name ?? null,
       vendor_name: purchase_orders?.vendors?.name ?? null,
       lines: stock_document_lines

@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Pencil, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { DocumentButton } from "@/components/print/document-viewer";
+import { batchLabel, poName } from "@/lib/doc-names";
 import { Modal } from "@/components/ui/modal";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -108,7 +109,8 @@ export function PoDetailModal({
         sub={
           po && (
             <span className="inline-flex flex-wrap items-center gap-2">
-              {po.vendor.name} · {fmtInt(po.lines.length)} SKU · {fmtInt(totals?.qty)} pcs
+              {po.vendor.name}
+              {po.batch && <> · {batchLabel(po.batch)}</>} · {fmtInt(po.lines.length)} SKU · {fmtInt(totals?.qty)} pcs
               {status && <Badge tone={status.tone}>{status.label}</Badge>}
             </span>
           )
@@ -116,7 +118,7 @@ export function PoDetailModal({
         footerLeft={
           po && (
             <>
-              <DocumentButton url={`/cetak/po/${po.id}`} fileName={po.po_no} title="Purchase Order" label="Dokumen PO" />
+              <DocumentButton url={`/cetak/po/${po.id}`} fileName={poName({ vendor_name: po.vendor.name, batch: po.batch, po_date: po.po_date })} title="Purchase Order" label="Dokumen PO" />
               {isOpenPo && (
                 <Button onClick={() => setEditing(true)}>
                   <Pencil className="h-3.5 w-3.5" /> Edit

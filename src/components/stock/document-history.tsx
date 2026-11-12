@@ -14,6 +14,7 @@ import { InfoBanner } from "@/components/ui/info-banner";
 import { EmptyRow, Pagination, SkeletonRows } from "@/components/ui/table-parts";
 import { useAppData } from "@/components/providers/app-data";
 import { DocumentButton } from "@/components/print/document-viewer";
+import { receiptName } from "@/lib/doc-names";
 import { DocumentDetailModal } from "@/components/stock/document-detail-modal";
 import { DeletedDocumentsModal } from "@/components/stock/deleted-documents-modal";
 import {
@@ -392,7 +393,7 @@ export function DocumentHistory({ data, receipts = false }: { data: DocumentHist
                     </td>
                     <td className="whitespace-nowrap text-right" onClick={(e) => e.stopPropagation()}>
                       {d.type === "produksi" && !voided && (
-                        <DocumentButton iconOnly url={`/cetak/penerimaan/${d.id}`} fileName={d.doc_no} title="Bukti Penerimaan" />
+                        <DocumentButton iconOnly url={`/cetak/penerimaan/${d.id}`} fileName={receiptName({ vendor_name: d.vendor_name, batch: d.po_batch, doc_date: d.doc_date })} title="Bukti Penerimaan" />
                       )}
                       <button
                         type="button"

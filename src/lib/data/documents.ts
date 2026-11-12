@@ -14,6 +14,8 @@ export interface DocumentSummary {
   channel: SalesChannel | null;
   po_id: string | null;
   po_no: string | null;
+  /** Batch PO (untuk nama dokumen) */
+  po_batch: string | null;
   vendor_name: string | null;
   warehouse_id: string;
   warehouse_name: string | null;
@@ -131,7 +133,7 @@ export async function getDocumentHistory(
 
     const types = opts.type ? [opts.type] : direction === "in" ? IN_TYPES : OUT_TYPES;
     const [docs, tToday, tWeek, tMonth, pending, deleted] = await Promise.all([
-      fetchAll<Omit<DocumentSummary, "product_names"> & { product_names: string | null }>(() =>
+      fetchAll<Omit<DocumentSummary, "product_names" | "po_batch"> & { product_names: string | null }>(() =>
         supabase
           .from("v_document_summary")
           .select(
@@ -165,6 +167,14 @@ export async function getDocumentHistory(
     ]);
     if (pending?.error) throw new Error(pending.error.message);
 
+    // Batch PO untuk nama dokumen penerimaan
+    const poIds = [...new Set(docs.map((d) => d.po_id).filter((x): x is string => !!x))];
+    const batchByPo = new Map<string, string | null>();
+    for (let i = 0; i < poIds.length; i += 200) {
+      const { data: pos } = await supabase.from("purchase_orders").select("id, batch").in("id", poIds.slice(i, i + 200));
+      for (const p of pos ?? []) batchByPo.set(p.id as string, (p.batch as string | null) ?? null);
+    }
+
     const stats: DocumentHistoryStats = { today: sum(tToday), week: sum(tWeek), month: sum(tMonth) };
     if (direction === "in") stats.openPos = pending?.count ?? 0;
     else {
@@ -176,6 +186,7 @@ export async function getDocumentHistory(
       ...empty,
       documents: docs.map((d) => ({
         ...d,
+        po_batch: d.po_id ? (batchByPo.get(d.po_id) ?? null) : null,
         product_names: (d.product_names ?? "")
           .split("|")
           .map((s) => s.trim())

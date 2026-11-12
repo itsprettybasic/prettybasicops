@@ -2,6 +2,7 @@ import { getFabricShipment } from "@/app/actions/fabric";
 import { PrintToolbar } from "@/components/print/print-toolbar";
 import { DocError, DocHeader, DocTable, InfoGrid, NoteBox, Paper, PartyBox, PrintedAt, Signatures } from "@/components/print/doc-parts";
 import { fmtDate } from "@/lib/format";
+import { suratJalanName } from "@/lib/doc-names";
 import { SHIPMENT_UNIT_LABEL, fmtUnitTotals, sumByUnit } from "@/lib/fabric";
 
 export const metadata = { title: "Surat Jalan · Pretty Basic" };
@@ -15,7 +16,7 @@ export default async function PrintSuratJalanPage({ params }: { params: Promise<
 
   return (
     <>
-      <PrintToolbar fileName={sj.sj_no} />
+      <PrintToolbar fileName={suratJalanName({ vendor_name: sj.vendor.name, ship_date: sj.ship_date })} />
       <Paper>
         <DocHeader title="SURAT JALAN" number={sj.sj_no} />
 

@@ -22,6 +22,7 @@ import {
 } from "@/lib/fabric";
 import { cn } from "@/lib/cn";
 import { DocumentButton } from "@/components/print/document-viewer";
+import { suratJalanName } from "@/lib/doc-names";
 import { FabricDetailModal } from "./fabric-detail-modal";
 import { FabricFormModal } from "./fabric-form-modal";
 
@@ -349,7 +350,7 @@ export function FabricList({
                   <td className="text-right">
                     <DocumentButton
                       url={`/cetak/surat-jalan/${s.id}`}
-                      fileName={s.sj_no}
+                      fileName={suratJalanName(s)}
                       title="Surat Jalan"
                       label="Surat Jalan"
                       className={"inline-flex cursor-pointer items-center gap-1.5 rounded-lg border border-line bg-white px-2.5 py-1.5 text-[12px] font-semibold text-ink-2 hover:border-primary-2 hover:text-primary-2"}

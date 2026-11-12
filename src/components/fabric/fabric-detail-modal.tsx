@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { CheckCircle2, Pencil, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { DocumentButton } from "@/components/print/document-viewer";
+import { suratJalanName } from "@/lib/doc-names";
 import { Modal } from "@/components/ui/modal";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -102,7 +103,7 @@ export function FabricDetailModal({ id, onClose }: { id: string; onClose: () => 
         footerLeft={
           sj && (
             <>
-              <DocumentButton url={`/cetak/surat-jalan/${sj.id}`} fileName={sj.sj_no} title="Surat Jalan" label="Surat Jalan" />
+              <DocumentButton url={`/cetak/surat-jalan/${sj.id}`} fileName={suratJalanName({ vendor_name: sj.vendor.name, ship_date: sj.ship_date })} title="Surat Jalan" label="Surat Jalan" />
               <Button onClick={() => setEditing(true)}>
                 <Pencil className="h-3.5 w-3.5" /> Edit
               </Button>

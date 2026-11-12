@@ -3,6 +3,7 @@ import { getPoDetail } from "@/app/actions/po";
 import { PrintToolbar } from "@/components/print/print-toolbar";
 import { DocError, DocHeader, DocTable, InfoGrid, NoteBox, Paper, PartyBox, PrintedAt, Signatures } from "@/components/print/doc-parts";
 import { fmtDate, fmtInt } from "@/lib/format";
+import { batchLabel, receiptName } from "@/lib/doc-names";
 
 export const metadata = { title: "Bukti Penerimaan Barang · Pretty Basic" };
 
@@ -19,7 +20,7 @@ export default async function PrintReceiptPage({ params }: { params: Promise<{ i
 
   return (
     <>
-      <PrintToolbar fileName={`Penerimaan ${doc.doc_no}`} />
+      <PrintToolbar fileName={receiptName({ vendor_name: po?.vendor.name ?? doc.vendor_name, batch: doc.po_batch, doc_date: doc.doc_date })} />
       <Paper>
         <DocHeader title="BUKTI PENERIMAAN BARANG" number={doc.doc_no} status={doc.voided_at ? "Dibatalkan" : undefined} />
 
@@ -37,7 +38,7 @@ export default async function PrintReceiptPage({ params }: { params: Promise<{ i
             rows={[
               ["No Penerimaan", doc.doc_no],
               ["Tanggal Terima", fmtDate(doc.doc_date)],
-              ["No PO", doc.po_no ?? "—"],
+              ["No PO", doc.po_no ? `${doc.po_no}${doc.po_batch ? ` · ${batchLabel(doc.po_batch)}` : ""}` : "—"],
               ["Tanggal PO", po ? fmtDate(po.po_date) : "—"],
               ["Total Diterima", `${fmtInt(total)} pcs`],
             ]}

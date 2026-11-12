@@ -3,6 +3,7 @@ import { PrintToolbar } from "@/components/print/print-toolbar";
 import { DocError, DocHeader, DocTable, InfoGrid, NoteBox, Paper, PartyBox, PrintedAt, Signatures } from "@/components/print/doc-parts";
 import { PO_STATUS_LABEL } from "@/lib/constants";
 import { fmtDate, fmtInt, fmtRupiah } from "@/lib/format";
+import { poName } from "@/lib/doc-names";
 
 export const metadata = { title: "Purchase Order · Pretty Basic" };
 
@@ -20,7 +21,7 @@ export default async function PrintPoPage({ params }: { params: Promise<{ id: st
 
   return (
     <>
-      <PrintToolbar fileName={po.po_no} />
+      <PrintToolbar fileName={poName({ vendor_name: po.vendor.name, batch: po.batch, po_date: po.po_date })} />
       <Paper>
         <DocHeader
           title="PURCHASE ORDER"
@@ -42,6 +43,7 @@ export default async function PrintPoPage({ params }: { params: Promise<{ id: st
           <InfoGrid
             rows={[
               ["No PO", po.po_no],
+              ...(po.batch ? ([["Batch", po.batch]] as [string, string][]) : []),
               ["Tanggal PO", fmtDate(po.po_date)],
               ["Tanggal Kedatangan", fmtDate(po.expected_date)],
               ["Jumlah SKU", `${fmtInt(po.lines.length)} SKU`],

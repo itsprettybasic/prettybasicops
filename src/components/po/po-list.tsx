@@ -17,12 +17,14 @@ import { FilterChip } from "@/components/ui/filter-chip";
 import { SearchInput } from "@/components/ui/search-input";
 import { EmptyRow, Pagination } from "@/components/ui/table-parts";
 import { DocumentButton } from "@/components/print/document-viewer";
+import { batchLabel, poName } from "@/lib/doc-names";
 import { PoDetailModal } from "./po-detail-modal";
 import { PoFormModal } from "./po-form-modal";
 
 export interface PoSummary {
   id: string;
   po_no: string;
+  batch: string | null;
   vendor_id: string;
   vendor_name: string;
   po_date: string;
@@ -123,7 +125,7 @@ export function PoList({ pos, today, initialOpenId }: { pos: PoSummary[]; today:
       if (!matches(p, filter)) return false;
       if (vendor && p.vendor_id !== vendor) return false;
       if (words.length === 0) return true;
-      const hay = `${p.po_no} ${p.vendor_name} ${p.note ?? ""}`.toLowerCase();
+      const hay = `${p.po_no} ${batchLabel(p.batch)} ${p.vendor_name} ${p.note ?? ""}`.toLowerCase();
       return words.every((w) => hay.includes(w));
     });
   }, [pos, filter, vendor, search]);
@@ -272,6 +274,7 @@ export function PoList({ pos, today, initialOpenId }: { pos: PoSummary[]; today:
                 <tr key={p.id} className="clickable" onClick={() => setDetailId(p.id)}>
                   <td>
                     <strong className="text-primary-2">{p.po_no}</strong>
+                    {p.batch && <div className="text-[11.5px] text-grey-1">{batchLabel(p.batch)}</div>}
                   </td>
                   <td>
                     <div className="font-medium text-ink-2">{p.vendor_name}</div>
@@ -292,7 +295,7 @@ export function PoList({ pos, today, initialOpenId }: { pos: PoSummary[]; today:
                   <td className="text-right">
                     <DocumentButton
                       url={`/cetak/po/${p.id}`}
-                      fileName={p.po_no}
+                      fileName={poName(p)}
                       title="Purchase Order"
                       label="PO"
                       className={"inline-flex cursor-pointer items-center gap-1.5 rounded-lg border border-line bg-white px-2.5 py-1.5 text-[12px] font-semibold text-ink-2 hover:border-primary-2 hover:text-primary-2"}

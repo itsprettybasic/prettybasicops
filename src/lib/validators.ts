@@ -37,6 +37,7 @@ export const poSchema = z
   .object({
     id: z.string().uuid().nullable(),
     po_no: z.string().trim().min(1, "No PO wajib diisi").max(40),
+    batch: z.string().trim().max(40, "Batch maksimal 40 karakter").nullable().default(null),
     vendor_id: z.string().uuid("Vendor belum dipilih"),
     po_date: dateStr,
     expected_date: dateStr.nullable(),

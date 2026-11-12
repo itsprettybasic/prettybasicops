@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { DocumentButton } from "@/components/print/document-viewer";
+import { receiptName } from "@/lib/doc-names";
 import { Modal } from "@/components/ui/modal";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -108,7 +109,7 @@ export function DocumentDetailModal({
           doc ? (
             <>
               {isReceipt && (
-              <DocumentButton url={`/cetak/penerimaan/${doc.id}`} fileName={doc.doc_no} title="Bukti Penerimaan" label="Bukti Penerimaan" />
+              <DocumentButton url={`/cetak/penerimaan/${doc.id}`} fileName={receiptName({ vendor_name: doc.vendor_name, batch: doc.po_batch, doc_date: doc.doc_date })} title="Bukti Penerimaan" label="Bukti Penerimaan" />
               )}
               <Button onClick={() => setEditing(true)}>
                 <Pencil className="h-3.5 w-3.5" /> Edit

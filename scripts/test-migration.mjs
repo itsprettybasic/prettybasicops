@@ -251,3 +251,18 @@ console.log('packing OK', (await db.query(`select * from pack_storage_summary()`
   assert(bad, 'satuan tidak dikenal ditolak');
   console.log('satuan kain OK');
 }
+{
+  // ── Batch PO ──────────────────────────────────────
+  const assert = (cond, msg) => { if (!cond) { console.error('FAIL:', msg); process.exit(1); } };
+  const v = (await db.query(`select id from vendors limit 1`)).rows[0].id;
+  const sku1 = (await db.query(`select id from skus limit 1`)).rows[0].id;
+  const lines = JSON.stringify([{sku_id: sku1, qty_suggested: 0, qty: 5, unit_price: null}]);
+  const n1 = (await db.query(`select next_po_batch($1) b`, [v])).rows[0].b;
+  const id = (await db.query(`select save_purchase_order(null,'PO-BATCH-1',$1,'2026-11-12',null,'draft',null,$2,$3) id`, [v, lines, n1])).rows[0].id;
+  assert((await db.query(`select batch from v_po_summary where id=$1`, [id])).rows[0].batch === n1, 'batch tersimpan & ada di view');
+  assert((await db.query(`select next_po_batch($1) b`, [v])).rows[0].b === String(Number(n1) + 1), 'batch berikutnya +1');
+  await db.query(`select save_purchase_order($1,'PO-BATCH-1',$2,'2026-11-12',null,'draft',null,$3,' ')`, [id, v, lines]);
+  assert((await db.query(`select batch from purchase_orders where id=$1`, [id])).rows[0].batch === null, 'batch kosong → null');
+  await db.query(`delete from purchase_orders where id=$1`, [id]);
+  console.log('batch PO OK');
+}

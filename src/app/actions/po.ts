@@ -80,6 +80,14 @@ export async function getNextPoNo(year: number): Promise<ActionResult<string>> {
   return { ok: true, data: data as string };
 }
 
+/** Saran batch berikutnya untuk vendor (angka batch terbesar + 1). */
+export async function getNextPoBatch(vendorId: string): Promise<ActionResult<string>> {
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("next_po_batch", { p_vendor_id: vendorId });
+  if (error) return fail(error.message);
+  return { ok: true, data: data as string };
+}
+
 export async function savePurchaseOrder(input: PoInput): Promise<ActionResult<{ id: string; po_no: string }>> {
   const parsed = poSchema.safeParse(input);
   if (!parsed.success) return fail(parsed.error.issues[0]?.message ?? "Data tidak valid");
@@ -94,6 +102,7 @@ export async function savePurchaseOrder(input: PoInput): Promise<ActionResult<{ 
     p_status: d.status,
     p_note: d.note,
     p_lines: d.lines,
+    p_batch: d.batch,
   });
   if (error) return fail(poError(error));
   revalidatePath("/", "layout");
@@ -128,6 +137,7 @@ export interface PoReceipt {
 export interface PoDetail {
   id: string;
   po_no: string;
+  batch: string | null;
   vendor_id: string;
   vendor: Vendor;
   po_date: string;
@@ -150,7 +160,7 @@ export async function getPoDetail(id: string): Promise<ActionResult<PoDetail>> {
     supabase
       .from("purchase_orders")
       .select(
-        `id, po_no, vendor_id, po_date, expected_date, status, note, done_at, closed_manually, created_by_name, created_at, updated_by_name, updated_at, vendors(${VENDOR_COLS}), purchase_order_lines(sku_id, qty_suggested, qty, unit_price, skus(code, color, size, products(name)))`,
+        `id, po_no, batch, vendor_id, po_date, expected_date, status, note, done_at, closed_manually, created_by_name, created_at, updated_by_name, updated_at, vendors(${VENDOR_COLS}), purchase_order_lines(sku_id, qty_suggested, qty, unit_price, skus(code, color, size, products(name)))`,
       )
       .eq("id", id)
       .single(),

@@ -17,7 +17,7 @@ export default async function PoPage({ searchParams }: { searchParams: Promise<{
       supabase
         .from("v_po_summary")
         .select(
-          "id, po_no, vendor_id, vendor_name, po_date, expected_date, status, note, done_at, created_at, sku_count, qty_ordered, qty_received, total_amount, receipt_count, last_receipt_date",
+          "id, po_no, batch, vendor_id, vendor_name, po_date, expected_date, status, note, done_at, created_at, sku_count, qty_ordered, qty_received, total_amount, receipt_count, last_receipt_date",
         )
         .order("po_date", { ascending: false })
         .order("created_at", { ascending: false }),
