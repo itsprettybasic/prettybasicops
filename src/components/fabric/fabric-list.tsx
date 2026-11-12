@@ -13,6 +13,7 @@ import { EmptyRow, Pagination } from "@/components/ui/table-parts";
 import { exportXlsx } from "@/lib/excel/download";
 import { fmtDate, fmtInt, fmtKg, fmtMonthYear } from "@/lib/format";
 import { cn } from "@/lib/cn";
+import { DocumentButton } from "@/components/print/document-viewer";
 import { FabricDetailModal } from "./fabric-detail-modal";
 import { FabricFormModal } from "./fabric-form-modal";
 
@@ -281,6 +282,7 @@ export function FabricList({
           )}
         </div>
 
+        <div className="overflow-x-auto">
         <table className="data-table">
           <thead>
             <tr>
@@ -292,11 +294,12 @@ export function FabricList({
               <th className="num">Roll</th>
               <th>Status</th>
               <th>Admin</th>
+              <th className="text-right">Dokumen</th>
             </tr>
           </thead>
           <tbody>
             {pageRows.length === 0 && (
-              <EmptyRow colSpan={8}>
+              <EmptyRow colSpan={9}>
                 {shipments.length === 0 ? (
                   <button type="button" onClick={() => setCreating(true)} className="cursor-pointer font-semibold text-primary-2 hover:underline">
                     Belum ada pengiriman kain. Catat yang pertama →
@@ -333,11 +336,21 @@ export function FabricList({
                     {s.received_date && <div className="mt-0.5 text-[11px] text-grey-1">{fmtDate(s.received_date)}</div>}
                   </td>
                   <td className={cn("whitespace-nowrap text-ink-2")}>{s.created_by_name ?? "—"}</td>
+                  <td className="text-right">
+                    <DocumentButton
+                      url={`/cetak/surat-jalan/${s.id}`}
+                      fileName={s.sj_no}
+                      title="Surat Jalan"
+                      label="Surat Jalan"
+                      className={"inline-flex cursor-pointer items-center gap-1.5 rounded-lg border border-line bg-white px-2.5 py-1.5 text-[12px] font-semibold text-ink-2 hover:border-primary-2 hover:text-primary-2"}
+                    />
+                  </td>
                 </tr>
               );
             })}
           </tbody>
         </table>
+        </div>
 
         {filtered.length > 0 && (
           <Pagination

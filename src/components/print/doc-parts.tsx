@@ -7,7 +7,7 @@ export function Paper({ children }: { children: React.ReactNode }) {
   return (
     <>
       <style>{`@page { size: A4; margin: 12mm; } @media print { html, body { background: #fff !important; } }`}</style>
-      <div className="mx-auto mb-10 w-full max-w-[210mm] bg-white px-6 py-8 text-[12px] leading-snug text-[#0f172a] shadow-[0_2px_16px_rgba(15,23,42,0.08)] sm:px-[14mm] sm:py-[12mm] print:mb-0 print:max-w-none print:p-0 print:shadow-none">
+      <div data-paper className="mx-auto mb-10 w-full max-w-[210mm] bg-white px-6 py-8 text-[12px] leading-snug text-[#0f172a] shadow-[0_2px_16px_rgba(15,23,42,0.08)] sm:px-[14mm] sm:py-[12mm] print:mb-0 print:max-w-none print:p-0 print:shadow-none">
         {children}
       </div>
     </>

@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
+import { DocumentButton } from "@/components/print/document-viewer";
 import { Modal } from "@/components/ui/modal";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -13,7 +14,7 @@ import { useAppData } from "@/components/providers/app-data";
 import { deleteStockDocument, getDocumentDetail, type DocumentDetail } from "@/app/actions/stock";
 import { ReceiptEditModal } from "@/components/po/receipt-edit-modal";
 import { StockDocumentModal } from "@/components/stock/stock-document-modal";
-import { Pencil, Printer, Trash2 } from "lucide-react";
+import { Pencil, Trash2 } from "lucide-react";
 import { CHANNEL_LABEL, TYPE_LABEL, TYPE_OPTION_LABEL, TYPE_TONE } from "@/lib/constants";
 import { fmtDate, fmtDateLong, fmtInt, fmtSigned, fmtTime } from "@/lib/format";
 
@@ -107,14 +108,7 @@ export function DocumentDetailModal({
           doc ? (
             <>
               {isReceipt && (
-              <a
-                href={`/cetak/penerimaan/${doc.id}`}
-                target="_blank"
-                rel="noopener"
-                className="inline-flex items-center gap-1.5 rounded-[10px] border border-line bg-white px-4 py-[9px] text-[13px] font-semibold text-ink-2 hover:border-grey-3"
-              >
-                <Printer className="h-3.5 w-3.5" /> Bukti Penerimaan
-              </a>
+              <DocumentButton url={`/cetak/penerimaan/${doc.id}`} fileName={doc.doc_no} title="Bukti Penerimaan" label="Bukti Penerimaan" />
               )}
               <Button onClick={() => setEditing(true)}>
                 <Pencil className="h-3.5 w-3.5" /> Edit

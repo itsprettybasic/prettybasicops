@@ -2,8 +2,9 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Pencil, Printer, Trash2 } from "lucide-react";
+import { Pencil, Trash2 } from "lucide-react";
 import { toast } from "sonner";
+import { DocumentButton } from "@/components/print/document-viewer";
 import { Modal } from "@/components/ui/modal";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -115,14 +116,7 @@ export function PoDetailModal({
         footerLeft={
           po && (
             <>
-              <a
-                href={`/cetak/po/${po.id}`}
-                target="_blank"
-                rel="noopener"
-                className="inline-flex items-center gap-1.5 rounded-[10px] border border-line bg-white px-4 py-[9px] text-[13px] font-semibold text-ink-2 hover:border-grey-3"
-              >
-                <Printer className="h-3.5 w-3.5" /> Dokumen PO
-              </a>
+              <DocumentButton url={`/cetak/po/${po.id}`} fileName={po.po_no} title="Purchase Order" label="Dokumen PO" />
               {isOpenPo && (
                 <Button onClick={() => setEditing(true)}>
                   <Pencil className="h-3.5 w-3.5" /> Edit

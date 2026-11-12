@@ -16,6 +16,7 @@ import { CapacityBar } from "@/components/ui/capacity-bar";
 import { FilterChip } from "@/components/ui/filter-chip";
 import { SearchInput } from "@/components/ui/search-input";
 import { EmptyRow, Pagination } from "@/components/ui/table-parts";
+import { DocumentButton } from "@/components/print/document-viewer";
 import { PoDetailModal } from "./po-detail-modal";
 import { PoFormModal } from "./po-form-modal";
 
@@ -49,7 +50,7 @@ const CHIPS: { key: Filter; label: string }[] = [
   { key: "cancelled", label: PO_STATUS_LABEL.cancelled },
 ];
 
-const COLS = 9;
+const COLS = 10;
 
 function isOpen(p: PoSummary) {
   return p.status === "draft" || p.status === "open";
@@ -235,6 +236,7 @@ export function PoList({ pos, today, initialOpenId }: { pos: PoSummary[]; today:
           </select>
         </Toolbar>
 
+        <div className="overflow-x-auto">
         <table className="data-table">
           <thead>
             <tr>
@@ -247,6 +249,7 @@ export function PoList({ pos, today, initialOpenId }: { pos: PoSummary[]; today:
               <th className="num">Diterima</th>
               <th className="num">Progress</th>
               <th>Status</th>
+              <th className="text-right">Dokumen</th>
             </tr>
           </thead>
           <tbody>
@@ -286,11 +289,21 @@ export function PoList({ pos, today, initialOpenId }: { pos: PoSummary[]; today:
                   <td>
                     <Badge tone={st.tone}>{st.label}</Badge>
                   </td>
+                  <td className="text-right">
+                    <DocumentButton
+                      url={`/cetak/po/${p.id}`}
+                      fileName={p.po_no}
+                      title="Purchase Order"
+                      label="PO"
+                      className={"inline-flex cursor-pointer items-center gap-1.5 rounded-lg border border-line bg-white px-2.5 py-1.5 text-[12px] font-semibold text-ink-2 hover:border-primary-2 hover:text-primary-2"}
+                    />
+                  </td>
                 </tr>
               );
             })}
           </tbody>
         </table>
+        </div>
 
         <Pagination
           page={page}

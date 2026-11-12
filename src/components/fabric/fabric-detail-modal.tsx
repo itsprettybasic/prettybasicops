@@ -2,8 +2,9 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { CheckCircle2, Pencil, Printer, Trash2 } from "lucide-react";
+import { CheckCircle2, Pencil, Trash2 } from "lucide-react";
 import { toast } from "sonner";
+import { DocumentButton } from "@/components/print/document-viewer";
 import { Modal } from "@/components/ui/modal";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -101,14 +102,7 @@ export function FabricDetailModal({ id, onClose }: { id: string; onClose: () => 
         footerLeft={
           sj && (
             <>
-              <a
-                href={`/cetak/surat-jalan/${sj.id}`}
-                target="_blank"
-                rel="noopener"
-                className="inline-flex items-center gap-1.5 rounded-[10px] border border-line bg-white px-4 py-[9px] text-[13px] font-semibold text-ink-2 hover:border-grey-3"
-              >
-                <Printer className="h-3.5 w-3.5" /> Surat Jalan
-              </a>
+              <DocumentButton url={`/cetak/surat-jalan/${sj.id}`} fileName={sj.sj_no} title="Surat Jalan" label="Surat Jalan" />
               <Button onClick={() => setEditing(true)}>
                 <Pencil className="h-3.5 w-3.5" /> Edit
               </Button>

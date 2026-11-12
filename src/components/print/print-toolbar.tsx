@@ -5,7 +5,7 @@ import { Printer, X } from "lucide-react";
 /** Tombol di atas dokumen — tidak ikut tercetak. */
 export function PrintToolbar({ fileName }: { fileName: string }) {
   return (
-    <div className="sticky top-0 z-10 mb-4 flex items-center justify-between gap-3 border-b border-line bg-white px-4 py-3 print:hidden">
+    <div data-print-toolbar className="sticky top-0 z-10 mb-4 flex items-center justify-between gap-3 border-b border-line bg-white px-4 py-3 print:hidden">
       <div className="min-w-0 text-[12.5px] text-grey-1">
         Pilih <strong className="text-ink-2">Simpan sebagai PDF</strong> di jendela cetak untuk menyimpan file{" "}
         <span className="hidden sm:inline">({fileName}.pdf)</span>

@@ -13,6 +13,7 @@ import { SearchInput } from "@/components/ui/search-input";
 import { InfoBanner } from "@/components/ui/info-banner";
 import { EmptyRow, Pagination, SkeletonRows } from "@/components/ui/table-parts";
 import { useAppData } from "@/components/providers/app-data";
+import { DocumentButton } from "@/components/print/document-viewer";
 import { DocumentDetailModal } from "@/components/stock/document-detail-modal";
 import { DeletedDocumentsModal } from "@/components/stock/deleted-documents-modal";
 import {
@@ -27,7 +28,7 @@ import { fmtDate, fmtDec, fmtInt, fmtMonthYear, fmtSigned, fmtTime } from "@/lib
 import { cn } from "@/lib/cn";
 import type { DocumentHistoryData, DocumentSummary } from "@/lib/data/documents";
 
-const COLS = 9;
+const COLS = 8;
 
 export function SourceBadge({ source }: { source: string }) {
   const label = source === "excel" ? "Excel" : source === "seed" ? "Import awal" : source === "opname" ? "Opname" : "Manual";
@@ -294,16 +295,16 @@ export function DocumentHistory({ data, receipts = false }: { data: DocumentHist
           </span>
         </div>
 
+        <div className="overflow-x-auto">
         <table className="data-table">
           <thead>
             <tr>
               <th>{receipts ? "No Penerimaan" : "No Catatan"}</th>
-              <th>Tanggal</th>
               <th>Tipe</th>
               <th>{isIn ? "No PO / Vendor" : "Channel"}</th>
               <th>SKU dalam Catatan</th>
               <th className="num">Total Qty</th>
-              <th>Catatan</th>
+              <th className="hidden xl:table-cell">Catatan</th>
               <th>Admin</th>
               <th className="w-[76px]" aria-label="Aksi" />
             </tr>
@@ -336,11 +337,10 @@ export function DocumentHistory({ data, receipts = false }: { data: DocumentHist
                 return (
                   <tr key={d.id} className={cn("clickable", voided && "text-grey-2")} onClick={() => setDetail({ id: d.id })}>
                     <td className="whitespace-nowrap">
-                      <span className={cn("num text-[12.5px] font-semibold", voided ? "text-grey-2" : "text-ink-2")}>{d.doc_no}</span>
-                    </td>
-                    <td className="whitespace-nowrap">
-                      <div className={cn("font-medium", voided ? "text-grey-2" : "text-ink-2")}>{fmtDate(d.doc_date)}</div>
-                      <div className="num text-[11.5px] text-grey-1">{fmtTime(d.created_at)}</div>
+                      <div className={cn("num text-[12.5px] font-semibold", voided ? "text-grey-2" : "text-ink-2")}>{d.doc_no}</div>
+                      <div className="num text-[11.5px] text-grey-1">
+                        {fmtDate(d.doc_date)} · {fmtTime(d.created_at)}
+                      </div>
                     </td>
                     <td>
                       <div className="flex flex-wrap items-center gap-1.5">
@@ -367,7 +367,7 @@ export function DocumentHistory({ data, receipts = false }: { data: DocumentHist
                         <span className="text-grey-2">—</span>
                       )}
                     </td>
-                    <td className="max-w-[260px]">
+                    <td className="max-w-[220px] 2xl:max-w-[300px]">
                       <div className={cn("font-semibold", voided ? "text-grey-2" : "text-ink")}>{fmtInt(d.sku_count)} SKU</div>
                       <div className="truncate text-[11.5px] text-grey-1">
                         {shown.join(", ")}
@@ -379,18 +379,21 @@ export function DocumentHistory({ data, receipts = false }: { data: DocumentHist
                         {signed(d.total_qty)}
                       </strong>
                     </td>
-                    <td className="max-w-[200px]">
+                    <td className="hidden max-w-[180px] xl:table-cell">
                       <div className="truncate" title={d.note ?? undefined}>
                         {d.note || <span className="text-grey-2">—</span>}
                       </div>
                     </td>
                     <td className="whitespace-nowrap">
-                      <div className={voided ? "text-grey-2" : "text-ink-2"}>{d.created_by_name ?? "—"}</div>
+                      <div className={cn("max-w-[120px] truncate", voided ? "text-grey-2" : "text-ink-2")}>{d.created_by_name ?? "—"}</div>
                       <div className="mt-0.5">
                         <SourceBadge source={d.source} />
                       </div>
                     </td>
                     <td className="whitespace-nowrap text-right" onClick={(e) => e.stopPropagation()}>
+                      {d.type === "produksi" && !voided && (
+                        <DocumentButton iconOnly url={`/cetak/penerimaan/${d.id}`} fileName={d.doc_no} title="Bukti Penerimaan" />
+                      )}
                       <button
                         type="button"
                         title="Edit"
@@ -416,6 +419,7 @@ export function DocumentHistory({ data, receipts = false }: { data: DocumentHist
             )}
           </tbody>
         </table>
+        </div>
 
         {!isPending && filtered.length > 0 && (
           <Pagination
