@@ -10,8 +10,8 @@ const jakarta = Plus_Jakarta_Sans({
 });
 
 export const metadata: Metadata = {
-  title: "Pretty Basic · PPIC",
-  description: "PPIC System Pretty Basic",
+  title: "Pretty Basic · Ops",
+  description: "Operations System Pretty Basic",
   appleWebApp: { capable: true, title: "PB Ops", statusBarStyle: "default" },
 };
 

@@ -47,17 +47,21 @@ const NAV: {
   }[];
 }[] = [
   {
-    section: "PPIC",
+    section: "Produksi",
     items: [
       { href: "/ppic", label: "Rekomendasi Produksi", icon: Box, badge: true },
+      { href: "/po", label: "Purchase Order", icon: FileText },
+      { href: "/pengiriman-kain", label: "Pengiriman Kain", icon: Truck },
+      { href: "/penerimaan", label: "Penerimaan Barang", icon: PackageCheck },
+    ],
+  },
+  {
+    section: "Gudang",
+    items: [
       { href: "/stock", label: "Stock Live", icon: Table },
       { href: "/barang-masuk", label: "Barang Masuk", icon: ArrowDown },
       { href: "/barang-keluar", label: "Barang Keluar", icon: ArrowUp },
       { href: "/stock-opname", label: "Stock Opname", icon: ClipboardCheck },
-      { href: "/po", label: "Purchase Order", icon: FileText },
-      { href: "/penerimaan", label: "Penerimaan Barang", icon: PackageCheck },
-      { href: "/pengiriman-kain", label: "Pengiriman Kain", icon: Truck },
-      { href: "/vendor", label: "Vendor", icon: Building2 },
     ],
   },
   {
@@ -71,17 +75,18 @@ const NAV: {
     ],
   },
   {
-    section: "Analisis",
+    section: "Laporan",
     items: [
       { href: "/ringkasan", label: "Ringkasan Produk", icon: LineChart },
       { href: "/mutasi", label: "Riwayat Mutasi", icon: ArrowLeftRight },
     ],
   },
   {
-    section: "Pengaturan",
+    section: "Data Master",
     items: [
       { href: "/produk", label: "Database Produk", icon: Package },
       { href: "/master-sku", label: "Master SKU", icon: Tags },
+      { href: "/vendor", label: "Vendor", icon: Building2 },
       { href: "/parameter", label: "Parameter PPIC", icon: Settings },
     ],
   },
@@ -185,7 +190,7 @@ export function AppShell({
           ) : (
             <div>
               <Image src="/logo.png" alt="Pretty Basic" width={83} height={44} className="h-11 w-auto" priority />
-              <div className="mt-1.5 text-[11px] leading-snug text-grey-1">PPIC System</div>
+              <div className="mt-1.5 text-[11px] leading-snug text-grey-1">Operations System</div>
             </div>
           )}
         </div>
