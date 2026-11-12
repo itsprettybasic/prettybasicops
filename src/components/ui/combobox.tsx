@@ -56,7 +56,7 @@ export function Combobox({
   /** Dipanggil setelah opsi dipilih lewat keyboard (Enter) — mis. pindah fokus ke kolom qty. */
   onEnterAfterSelect?: () => void;
   /** Aksi di bawah daftar, mis. "+ Tambah konveksi baru" */
-  footerAction?: { label: string; onSelect: (query: string) => void };
+  footerAction?: { label: string | ((query: string) => string); onSelect: (query: string) => void };
   className?: string;
   size?: "md" | "sm";
 }) {
@@ -175,7 +175,7 @@ export function Combobox({
                   }}
                   className="cursor-pointer border-t border-line px-3.5 py-2.5 text-[12.5px] font-semibold text-primary-2 data-[selected=true]:bg-primary-tint"
                 >
-                  {footerAction.label}
+                  {typeof footerAction.label === "function" ? footerAction.label(query) : footerAction.label}
                 </Command.Item>
               )}
             </Command.List>

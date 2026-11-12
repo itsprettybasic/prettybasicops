@@ -10,6 +10,7 @@ import { saveSku } from "@/app/actions/master-sku";
 import { skuSchema, suggestSkuCode, type SkuInput } from "@/lib/validators";
 import type { SkuInfo } from "@/lib/data/ppic";
 import { cn } from "@/lib/cn";
+import { OptionPicker } from "@/components/ui/option-picker";
 
 /** Toggle kecil Aktif/Nonaktif. */
 export function ActiveSwitch({
@@ -57,6 +58,7 @@ export function SkuFormModal({
   sku,
   products,
   codeOwners,
+  colors,
   today,
 }: {
   open: boolean;
@@ -66,6 +68,8 @@ export function SkuFormModal({
   products: string[];
   /** Kode SKU (uppercase) → id SKU pemiliknya, untuk cek unik di client */
   codeOwners: Map<string, string>;
+  /** Daftar warna yang sudah ada (unik) */
+  colors: string[];
   today: string;
 }) {
   const router = useRouter();
@@ -196,14 +200,15 @@ export function SkuFormModal({
         <div className="mb-4 grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
             <label className="form-label">Warna</label>
-            <input
-              className={cn("form-input", errors.color && "error")}
+            <OptionPicker
+              options={colors}
               value={color}
-              onChange={(e) => {
-                setColor(e.target.value);
+              onChange={(v) => {
+                setColor(v);
                 clearError("color");
               }}
-              placeholder="mis. Broken white"
+              noun="warna"
+              invalid={!!errors.color}
             />
             {errors.color && <div className="form-error">{errors.color}</div>}
           </div>

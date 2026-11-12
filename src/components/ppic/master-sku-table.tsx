@@ -13,6 +13,7 @@ import { RankBadge } from "@/components/ui/badge";
 import { matchOption } from "@/components/ui/combobox";
 import { EmptyRow, Pagination } from "@/components/ui/table-parts";
 import { ActiveSwitch, SkuFormModal } from "@/components/ppic/sku-form-modal";
+import { uniqueOptions } from "@/components/ui/option-picker";
 import { setSkuActive } from "@/app/actions/master-sku";
 import { exportXlsx } from "@/lib/excel/download";
 import { fmtDate, fmtInt, fmtRupiah } from "@/lib/format";
@@ -60,6 +61,7 @@ export function MasterSkuTable({
 
   const isActive = (s: SkuInfo) => pendingActive[s.id] ?? s.is_active;
 
+  const colors = useMemo(() => uniqueOptions(skus.map((s) => s.color)), [skus]);
   const codeOwners = useMemo(() => new Map(skus.map((s) => [s.code.toUpperCase(), s.id])), [skus]);
 
   const sorted = useMemo(
@@ -306,6 +308,7 @@ export function MasterSkuTable({
           sku={editing}
           products={products}
           codeOwners={codeOwners}
+          colors={colors}
           today={today}
         />
       )}

@@ -13,6 +13,7 @@ import { SearchInput } from "@/components/ui/search-input";
 import { FilterChip } from "@/components/ui/filter-chip";
 import { EmptyRow, Pagination } from "@/components/ui/table-parts";
 import { saveProduct } from "@/app/actions/products";
+import { OptionPicker, uniqueOptions } from "@/components/ui/option-picker";
 import { exportXlsx } from "@/lib/excel/download";
 import { fmtInt } from "@/lib/format";
 import type { SkuInfo } from "@/lib/data/ppic";
@@ -90,10 +91,8 @@ export function ProductTable({
     [products],
   );
 
-  const fabricTypes = useMemo(
-    () => [...new Set(products.map((p) => p.fabric_type).filter((c): c is string => !!c))].sort((a, b) => a.localeCompare(b, "id")),
-    [products],
-  );
+  const fabricTypes = useMemo(() => uniqueOptions(products.map((p) => p.fabric_type)), [products]);
+  const colors = useMemo(() => uniqueOptions(skus.map((s) => s.color)), [skus]);
 
   const searched = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -285,6 +284,7 @@ export function ProductTable({
           skus={editing ? sortSkus(skusByProduct.get(editing.id) ?? []) : []}
           categories={categories}
           fabricTypes={fabricTypes}
+          colors={colors}
         />
       )}
     </>
@@ -305,6 +305,7 @@ function ProductFormModal({
   skus,
   categories,
   fabricTypes,
+  colors,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -312,6 +313,7 @@ function ProductFormModal({
   skus: SkuInfo[];
   categories: string[];
   fabricTypes: string[];
+  colors: string[];
 }) {
   const router = useRouter();
   const [fabricType, setFabricType] = useState(product?.fabric_type ?? "");
@@ -432,18 +434,14 @@ function ProductFormModal({
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-[1.4fr_0.8fr_1fr_1fr]">
           <div>
             <label className="form-label">Jenis Kain</label>
-            <input
-              className="form-input"
+            <OptionPicker
+              options={fabricTypes}
               value={fabricType}
-              list="fabric-types"
-              onChange={(e) => setFabricType(e.target.value)}
-              placeholder="mis. Rayon, Katun"
+              onChange={setFabricType}
+              noun="jenis kain"
+              placeholder="Pilih jenis kain"
+              allowEmpty
             />
-            <datalist id="fabric-types">
-              {fabricTypes.map((c) => (
-                <option key={c} value={c} />
-              ))}
-            </datalist>
           </div>
           <div>
             <label className="form-label">Satuan</label>
@@ -550,10 +548,12 @@ function ProductFormModal({
                         />
                       </td>
                       <td className="min-w-[120px]">
-                        <input
-                          className="form-input !py-1.5"
+                        <OptionPicker
+                          size="sm"
+                          options={colors}
                           value={d.color}
-                          onChange={(e) => updateDraft(d.id, { color: e.target.value })}
+                          onChange={(v) => updateDraft(d.id, { color: v })}
+                          noun="warna"
                         />
                       </td>
                       <td className="min-w-[90px]">
