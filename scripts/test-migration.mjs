@@ -266,3 +266,27 @@ console.log('packing OK', (await db.query(`select * from pack_storage_summary()`
   await db.query(`delete from purchase_orders where id=$1`, [id]);
   console.log('batch PO OK');
 }
+{
+  // ── Kalkulator Kain ───────────────────────────────
+  const assert = (cond, msg) => { if (!cond) { console.error('FAIL:', msg); process.exit(1); } };
+  const p1 = (await db.query(`insert into products(name, fabric_type, fabric_unit, fabric_qty, fabric_pcs) values ('KK Test A','Rayon','kg',1,4) returning id`)).rows[0].id;
+  const p2 = (await db.query(`insert into products(name) values ('KK Test B') returning id`)).rows[0].id;
+  const lines = JSON.stringify([{product_id: p1, color: 'Black', qty_pcs: 100}, {product_id: p2, color: ' ', qty_pcs: 20}]);
+  const id = (await db.query(`select save_fabric_calculation(null,'Rencana Des','2026-11-12',null,null,$1) id`, [lines])).rows[0].id;
+  const c = (await db.query(`select calc_no, title from fabric_calculations where id=$1`, [id])).rows[0];
+  assert(c.calc_no === 'KK-20261112-001' && c.title === 'Rencana Des', 'nomor & judul');
+  const ls = (await db.query(`select line_no, color, qty_pcs, fabric_type, fabric_unit, fabric_qty::float q, fabric_pcs::float p from fabric_calculation_lines where calc_id=$1 order by line_no`, [id])).rows;
+  assert(ls.length === 2 && ls[0].fabric_type === 'Rayon' && ls[0].q / ls[0].p * ls[0].qty_pcs === 25 && ls[1].color === null && ls[1].fabric_unit === null, 'snapshot kain');
+  // edit: data produk berubah → simpan ulang pakai data terbaru
+  await db.query(`update products set fabric_qty=1, fabric_pcs=5 where id=$1`, [p1]);
+  await db.query(`select save_fabric_calculation($1,'',  '2026-11-13',null,'ok',$2)`, [id, JSON.stringify([{product_id: p1, color: 'White', qty_pcs: 50}])]);
+  const e = (await db.query(`select title, calc_no, updated_by_name, (select count(*)::int from fabric_calculation_lines where calc_id=$1) n, (select fabric_pcs::float from fabric_calculation_lines where calc_id=$1) p from fabric_calculations where id=$1`, [id])).rows[0];
+  assert(e.title === null && e.calc_no === 'KK-20261112-001' && e.n === 1 && e.p === 5 && e.updated_by_name, 'edit');
+  let bad = false; try { await db.query(`select save_fabric_calculation(null,null,'2026-11-12',null,null,$1)`, [JSON.stringify([{product_id: p1, qty_pcs: 0}])]); } catch { bad = true; }
+  assert(bad, 'qty 0 ditolak');
+  assert((await db.query(`select save_fabric_calculation(null,null,'2026-11-12',null,null,$1) id`, [lines])).rows.length === 1, 'nomor kedua');
+  assert((await db.query(`select count(*)::int n from fabric_calculations where calc_no='KK-20261112-002'`)).rows[0].n === 1, 'nomor urut');
+  await db.query(`delete from fabric_calculations where id=$1`, [id]);
+  assert((await db.query(`select count(*)::int n from fabric_calculation_lines where calc_id=$1`, [id])).rows[0].n === 0, 'hapus cascade');
+  console.log('kalkulator kain OK');
+}

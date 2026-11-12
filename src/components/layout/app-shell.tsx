@@ -9,6 +9,7 @@ import {
   ArrowLeftRight,
   ArrowUp,
   Box,
+  Calculator,
   ChevronLeft,
   ClipboardCheck,
   History,
@@ -53,6 +54,7 @@ const NAV: {
     items: [
       { href: "/ppic", label: "Rekomendasi Produksi", icon: Box, badge: true },
       { href: "/po", label: "Purchase Order", icon: FileText },
+      { href: "/kalkulator-kain", label: "Kalkulator Kain", icon: Calculator },
       { href: "/pengiriman-kain", label: "Pengiriman Kain", icon: Truck },
       { href: "/penerimaan", label: "Penerimaan Barang", icon: PackageCheck },
     ],
