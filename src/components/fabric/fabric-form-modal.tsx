@@ -18,23 +18,24 @@ import {
   type FabricShipmentDetail,
 } from "@/app/actions/fabric";
 import { fabricShipmentSchema } from "@/lib/validators";
-import { fmtKg } from "@/lib/format";
+import { SHIPMENT_UNITS, SHIPMENT_UNIT_LABEL, fmtUnitTotals, sumByUnit, type ShipmentUnit } from "@/lib/fabric";
 import { cn } from "@/lib/cn";
 
 interface Line {
   key: number;
   fabric: string;
   color: string;
-  kg: string;
-  roll: string;
+  qty: string;
+  unit: ShipmentUnit;
   note: string;
 }
 
 let lineKey = 0;
-const blank = (): Line => ({ key: ++lineKey, fabric: "", color: "", kg: "", roll: "", note: "" });
+/** Baris baru ikut satuan baris terakhir (default KG) */
+const blank = (unit: ShipmentUnit = "kg"): Line => ({ key: ++lineKey, fabric: "", color: "", qty: "", unit, note: "" });
 
 /** "12,5" / "12.5" → 12.5 ; kosong → null ; tidak valid → NaN */
-function parseKg(s: string): number | null {
+function parseQty(s: string): number | null {
   const t = s.trim().replace(",", ".");
   if (t === "") return null;
   return /^\d+(\.\d+)?$/.test(t) ? Number(t) : NaN;
@@ -69,8 +70,8 @@ export function FabricFormModal({
           key: ++lineKey,
           fabric: l.fabric_type,
           color: l.color,
-          kg: String(l.qty_kg).replace(".", ","),
-          roll: l.roll_count === null ? "" : String(l.roll_count),
+          qty: String(l.qty).replace(".", ","),
+          unit: l.unit,
           note: l.note ?? "",
         }))
       : [blank()],
@@ -131,32 +132,26 @@ export function FabricFormModal({
   }
 
   const parsed = lines.map((l) => {
-    const kg = parseKg(l.kg);
-    const roll = l.roll.trim() === "" ? null : Number(l.roll);
-    const empty = !l.fabric.trim() && !l.color.trim() && !l.kg.trim() && !l.roll.trim() && !l.note.trim();
+    const qty = parseQty(l.qty);
+    const empty = !l.fabric.trim() && !l.color.trim() && !l.qty.trim() && !l.note.trim();
     return {
       ...l,
-      kgNum: kg,
-      rollNum: roll,
+      qtyNum: qty,
       empty,
-      kgBad: !empty && (kg === null || Number.isNaN(kg) || kg <= 0),
-      rollBad: roll !== null && (!Number.isInteger(roll) || roll < 0),
+      qtyBad: !empty && (qty === null || Number.isNaN(qty) || qty <= 0),
     };
   });
   const used = parsed.filter((l) => !l.empty);
-  const totalKg = used.reduce((s, l) => s + (l.kgNum && !Number.isNaN(l.kgNum) ? l.kgNum : 0), 0);
-  const totalRoll = used.reduce((s, l) => s + (l.rollNum && !l.rollBad ? l.rollNum : 0), 0);
+  const totalText = fmtUnitTotals(
+    sumByUnit(used.filter((l) => l.qtyNum && !Number.isNaN(l.qtyNum)).map((l) => ({ qty: l.qtyNum!, unit: l.unit }))),
+  );
 
   const update = (key: number, patch: Partial<Line>) => setLines((ls) => ls.map((l) => (l.key === key ? { ...l, ...patch } : l)));
 
   async function save() {
     setSubmitted(true);
-    if (used.some((l) => l.kgBad)) {
-      toast.error("Qty (kg) harus angka lebih dari 0, mis. 12,5");
-      return;
-    }
-    if (used.some((l) => l.rollBad)) {
-      toast.error("Jumlah roll harus bilangan bulat");
+    if (used.some((l) => l.qtyBad)) {
+      toast.error("Qty harus angka lebih dari 0, mis. 12,5");
       return;
     }
     const input = {
@@ -171,8 +166,8 @@ export function FabricFormModal({
       lines: used.map((l) => ({
         fabric_type: l.fabric,
         color: l.color,
-        qty_kg: l.kgNum ?? 0,
-        roll_count: l.rollNum,
+        qty: l.qtyNum ?? 0,
+        unit: l.unit,
         note: l.note,
       })),
     };
@@ -188,7 +183,7 @@ export function FabricFormModal({
       toast.error(`Gagal menyimpan: ${res.error}`);
       return;
     }
-    toast.success(editing ? `${res.data.sj_no} diperbarui` : `${res.data.sj_no} tersimpan · ${fmtKg(totalKg)} kg`);
+    toast.success(editing ? `${res.data.sj_no} diperbarui` : `${res.data.sj_no} tersimpan · ${totalText}`);
     onSaved?.(res.data.id);
     onClose();
     router.refresh();
@@ -202,7 +197,7 @@ export function FabricFormModal({
         wide
         eyebrow="Pengiriman Kain"
         title={editing ? `Ubah ${shipment.sj_no}` : "Catat Pengiriman Kain"}
-        sub="Kain yang dikirim ke vendor · qty dalam KG"
+        sub="Kain yang dikirim ke vendor · satuan bisa KG, Yard, Meter, atau Roll"
         footer={
           <>
             <Button onClick={onClose}>Batal</Button>
@@ -296,8 +291,8 @@ export function FabricFormModal({
                 <th className="w-10">No</th>
                 <th>Jenis Kain</th>
                 <th className="w-[150px]">Warna</th>
-                <th className="num w-[110px]">Qty (kg)</th>
-                <th className="num w-[80px]">Roll</th>
+                <th className="num w-[100px]">Qty</th>
+                <th className="w-[100px]">Satuan</th>
                 <th className="w-[170px]">Keterangan</th>
                 <th className="w-9" />
               </tr>
@@ -327,20 +322,25 @@ export function FabricFormModal({
                   <td className="num">
                     <input
                       inputMode="decimal"
-                      className={cn("qty-input", submitted && l.kgBad && "error")}
-                      value={l.kg}
+                      className={cn("qty-input", submitted && l.qtyBad && "error")}
+                      value={l.qty}
                       placeholder="0"
-                      onChange={(e) => update(l.key, { kg: e.target.value })}
+                      onChange={(e) => update(l.key, { qty: e.target.value })}
                     />
                   </td>
-                  <td className="num">
-                    <input
-                      inputMode="numeric"
-                      className={cn("qty-input !w-[64px]", l.rollBad && "error")}
-                      value={l.roll}
-                      placeholder="—"
-                      onChange={(e) => update(l.key, { roll: e.target.value })}
-                    />
+                  <td>
+                    <select
+                      className="select-input w-full !py-1.5"
+                      value={l.unit}
+                      aria-label="Satuan"
+                      onChange={(e) => update(l.key, { unit: e.target.value as ShipmentUnit })}
+                    >
+                      {SHIPMENT_UNITS.map((u) => (
+                        <option key={u} value={u}>
+                          {SHIPMENT_UNIT_LABEL[u]}
+                        </option>
+                      ))}
+                    </select>
                   </td>
                   <td>
                     <input
@@ -366,7 +366,7 @@ export function FabricFormModal({
                 <td colSpan={7} className="!py-2">
                   <button
                     type="button"
-                    onClick={() => setLines((ls) => [...ls, blank()])}
+                    onClick={() => setLines((ls) => [...ls, blank(ls[ls.length - 1]?.unit)])}
                     className="flex w-full cursor-pointer items-center justify-center gap-1.5 rounded-lg border border-dashed border-grey-3 py-2 text-[12.5px] font-semibold text-grey-1 transition-colors hover:border-primary-2 hover:bg-primary-tint hover:text-primary-2"
                   >
                     <Plus className="h-3.5 w-3.5" />
@@ -380,8 +380,9 @@ export function FabricFormModal({
                 <td colSpan={3} className="text-grey-1">
                   Total: <span className="text-ink">{used.length} baris</span>
                 </td>
-                <td className="num pr-[10px] text-right text-ink">{fmtKg(totalKg)} kg</td>
-                <td className="num pr-[10px] text-right text-ink">{totalRoll > 0 ? totalRoll : "—"}</td>
+                <td colSpan={2} className="num pr-[10px] text-right whitespace-nowrap text-ink">
+                  {totalText}
+                </td>
                 <td colSpan={2} />
               </tr>
             </tfoot>

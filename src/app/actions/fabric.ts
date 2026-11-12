@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { fabricShipmentSchema, type FabricShipmentInput } from "@/lib/validators";
+import type { ShipmentUnit } from "@/lib/fabric";
 import type { ActionResult } from "./stock";
 import type { Vendor } from "./po";
 
@@ -42,8 +43,8 @@ export interface FabricLine {
   line_no: number;
   fabric_type: string;
   color: string;
-  qty_kg: number;
-  roll_count: number | null;
+  qty: number;
+  unit: ShipmentUnit;
   note: string | null;
 }
 
@@ -73,7 +74,7 @@ export async function getFabricShipment(id: string): Promise<ActionResult<Fabric
   const { data, error } = await supabase
     .from("fabric_shipments")
     .select(
-      "id, sj_no, ship_date, vendor_id, po_id, status, received_date, received_by, driver_name, vehicle_no, note, created_by_name, created_at, updated_by_name, updated_at, vendors(id, name, contact_person, phone, email, address, note, is_active), purchase_orders(po_no), fabric_shipment_lines(line_no, fabric_type, color, qty_kg, roll_count, note)",
+      "id, sj_no, ship_date, vendor_id, po_id, status, received_date, received_by, driver_name, vehicle_no, note, created_by_name, created_at, updated_by_name, updated_at, vendors(id, name, contact_person, phone, email, address, note, is_active), purchase_orders(po_no), fabric_shipment_lines(line_no, fabric_type, color, qty, unit, note)",
     )
     .eq("id", id)
     .single();
@@ -81,7 +82,7 @@ export async function getFabricShipment(id: string): Promise<ActionResult<Fabric
   const row = data as unknown as Omit<FabricShipmentDetail, "vendor" | "po_no" | "lines"> & {
     vendors: Vendor;
     purchase_orders: { po_no: string } | null;
-    fabric_shipment_lines: (Omit<FabricLine, "qty_kg"> & { qty_kg: number | string })[];
+    fabric_shipment_lines: (Omit<FabricLine, "qty"> & { qty: number | string })[];
   };
   const { vendors, purchase_orders, fabric_shipment_lines, ...rest } = row;
   return {
@@ -91,7 +92,7 @@ export async function getFabricShipment(id: string): Promise<ActionResult<Fabric
       vendor: vendors,
       po_no: purchase_orders?.po_no ?? null,
       lines: fabric_shipment_lines
-        .map((l) => ({ ...l, qty_kg: Number(l.qty_kg) }))
+        .map((l) => ({ ...l, qty: Number(l.qty) }))
         .sort((a, b) => a.line_no - b.line_no),
     },
   };

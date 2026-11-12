@@ -11,7 +11,15 @@ import { FilterChip } from "@/components/ui/filter-chip";
 import { SearchInput } from "@/components/ui/search-input";
 import { EmptyRow, Pagination } from "@/components/ui/table-parts";
 import { exportXlsx } from "@/lib/excel/download";
-import { fmtDate, fmtInt, fmtKg, fmtMonthYear } from "@/lib/format";
+import { fmtDate, fmtInt, fmtMonthYear } from "@/lib/format";
+import {
+  SHIPMENT_UNIT_LABEL,
+  fmtFabricQty,
+  fmtUnitTotals,
+  mergeUnitTotals,
+  type ShipmentUnit,
+  type UnitTotals,
+} from "@/lib/fabric";
 import { cn } from "@/lib/cn";
 import { DocumentButton } from "@/components/print/document-viewer";
 import { FabricDetailModal } from "./fabric-detail-modal";
@@ -34,8 +42,8 @@ export interface FabricShipmentRow {
   created_by_name: string | null;
   created_at: string;
   line_count: number;
-  total_kg: number | string;
-  total_roll: number;
+  /** Total per satuan, mis. { kg: 25.5, yard: 10 } */
+  qty_by_unit: UnitTotals | null;
   fabric_types: string | null;
   colors: string | null;
 }
@@ -45,8 +53,8 @@ export interface FabricLineRow {
   line_no: number;
   fabric_type: string;
   color: string;
-  qty_kg: number | string;
-  roll_count: number | null;
+  qty: number | string;
+  unit: string;
   note: string | null;
 }
 
@@ -90,16 +98,18 @@ export function FabricList({
     const month = today.slice(0, 7);
     const thisMonth = shipments.filter((s) => s.ship_date.slice(0, 7) === month);
     const pending = shipments.filter((s) => s.status === "dikirim");
-    const byVendor = new Map<string, number>();
-    for (const s of thisMonth) byVendor.set(s.vendor_name, (byVendor.get(s.vendor_name) ?? 0) + Number(s.total_kg));
-    const top = [...byVendor.entries()].sort((a, b) => b[1] - a[1])[0];
+    // Vendor terbanyak = paling banyak surat jalan bulan ini
+    const byVendor = new Map<string, FabricShipmentRow[]>();
+    for (const s of thisMonth) byVendor.set(s.vendor_name, [...(byVendor.get(s.vendor_name) ?? []), s]);
+    const topEntry = [...byVendor.entries()].sort((a, b) => b[1].length - a[1].length)[0];
+    const totals = (list: FabricShipmentRow[]) => mergeUnitTotals(list.map((r) => r.qty_by_unit));
     return {
-      monthKg: thisMonth.reduce((s, r) => s + Number(r.total_kg), 0),
+      month: totals(thisMonth),
       monthCount: thisMonth.length,
       pending: pending.length,
-      pendingKg: pending.reduce((s, r) => s + Number(r.total_kg), 0),
-      top,
-      allKg: shipments.reduce((s, r) => s + Number(r.total_kg), 0),
+      pendingQty: totals(pending),
+      top: topEntry ? { name: topEntry[0], count: topEntry[1].length, qty: totals(topEntry[1]) } : null,
+      all: totals(shipments),
     };
   }, [shipments, today]);
 
@@ -125,7 +135,7 @@ export function FabricList({
     dikirim: base.filter((s) => s.status === "dikirim").length,
     diterima: base.filter((s) => s.status === "diterima").length,
   };
-  const filteredKg = filtered.reduce((s, r) => s + Number(r.total_kg), 0);
+  const filteredQty = mergeUnitTotals(filtered.map((r) => r.qty_by_unit));
   const pageRows = filtered.slice(page * pageSize, (page + 1) * pageSize);
   const hasFilter = !!(search.trim() || vendor || fabric || from || to || status !== "all");
   const reset = <T,>(set: (v: T) => void) => (v: T) => {
@@ -150,8 +160,8 @@ export function FabricList({
           { header: "No Baris", width: 9, value: (r) => r.l.line_no },
           { header: "Jenis Kain", width: 22, value: (r) => r.l.fabric_type },
           { header: "Warna", width: 16, value: (r) => r.l.color },
-          { header: "Qty (kg)", numFmt: "#,##0.00", value: (r) => Number(r.l.qty_kg) },
-          { header: "Roll", numFmt: "#,##0", value: (r) => r.l.roll_count },
+          { header: "Qty", numFmt: "#,##0.##", value: (r) => Number(r.l.qty) },
+          { header: "Satuan", width: 9, value: (r) => SHIPMENT_UNIT_LABEL[r.l.unit as ShipmentUnit] ?? r.l.unit },
           { header: "Keterangan", width: 24, value: (r) => r.l.note },
           { header: "Status", width: 12, value: (r) => (r.s.status === "diterima" ? "Diterima" : "Dikirim") },
           { header: "Tgl Diterima", width: 14, value: (r) => r.s.received_date },
@@ -173,26 +183,28 @@ export function FabricList({
         <StatCard
           label="Kirim Bulan Ini"
           tone="primary"
-          value={fmtKg(stats.monthKg)}
-          unit="kg"
+          value={fmtUnitTotals(stats.month)}
           sub={`${fmtMonthYear(today)} · ${fmtInt(stats.monthCount)} surat jalan`}
         />
         <StatCard
           label="Belum Dikonfirmasi"
           tone="warn"
           value={fmtInt(stats.pending)}
-          sub={`${fmtKg(stats.pendingKg)} kg belum ditandai diterima vendor`}
+          sub={`${fmtUnitTotals(stats.pendingQty)} belum ditandai diterima vendor`}
           active={status === "dikirim"}
           onClick={() => reset(setStatus)(status === "dikirim" ? "all" : "dikirim")}
         />
         <StatCard
           label="Vendor Terbanyak"
           tone="pos"
-          value={stats.top ? fmtKg(stats.top[1]) : "—"}
-          unit="kg"
-          sub={stats.top ? `${stats.top[0]} · bulan ini` : "Belum ada pengiriman bulan ini"}
+          value={stats.top ? stats.top.name : "—"}
+          sub={
+            stats.top
+              ? `${fmtInt(stats.top.count)} surat jalan · ${fmtUnitTotals(stats.top.qty)} · bulan ini`
+              : "Belum ada pengiriman bulan ini"
+          }
         />
-        <StatCard label="Total Semua" tone="grey" value={fmtKg(stats.allKg)} unit="kg" sub={`${fmtInt(shipments.length)} surat jalan`} />
+        <StatCard label="Total Semua" tone="grey" value={fmtUnitTotals(stats.all)} sub={`${fmtInt(shipments.length)} surat jalan`} />
       </StatGrid>
 
       <Panel
@@ -261,7 +273,7 @@ export function FabricList({
 
         <div className="-mt-1 mb-3 flex items-center justify-between text-[12px] text-grey-1">
           <span>
-            {fmtInt(filtered.length)} surat jalan · <strong className="text-ink-2">{fmtKg(filteredKg)} kg</strong>
+            {fmtInt(filtered.length)} surat jalan · <strong className="text-ink-2">{fmtUnitTotals(filteredQty)}</strong>
           </span>
           {hasFilter && (
             <button
@@ -290,8 +302,7 @@ export function FabricList({
               <th>Tanggal</th>
               <th>Vendor</th>
               <th>Kain</th>
-              <th className="num">Qty (kg)</th>
-              <th className="num">Roll</th>
+              <th className="num">Qty</th>
               <th>Status</th>
               <th>Admin</th>
               <th className="text-right">Dokumen</th>
@@ -299,7 +310,7 @@ export function FabricList({
           </thead>
           <tbody>
             {pageRows.length === 0 && (
-              <EmptyRow colSpan={9}>
+              <EmptyRow colSpan={8}>
                 {shipments.length === 0 ? (
                   <button type="button" onClick={() => setCreating(true)} className="cursor-pointer font-semibold text-primary-2 hover:underline">
                     Belum ada pengiriman kain. Catat yang pertama →
@@ -311,7 +322,7 @@ export function FabricList({
             )}
             {pageRows.map((s) => {
               const ls = linesBy.get(s.id) ?? [];
-              const shown = ls.slice(0, 2).map((l) => `${l.fabric_type} ${l.color} (${fmtKg(l.qty_kg)} kg)`);
+              const shown = ls.slice(0, 2).map((l) => `${l.fabric_type} ${l.color} (${fmtFabricQty(l.qty, l.unit)})`);
               return (
                 <tr key={s.id} className="clickable" onClick={() => setDetailId(s.id)}>
                   <td className="whitespace-nowrap">
@@ -327,10 +338,9 @@ export function FabricList({
                       {ls.length > 2 && `, +${ls.length - 2} lainnya`}
                     </div>
                   </td>
-                  <td className="num">
-                    <strong>{fmtKg(s.total_kg)}</strong>
+                  <td className="num whitespace-nowrap">
+                    <strong>{fmtUnitTotals(s.qty_by_unit)}</strong>
                   </td>
-                  <td className="num">{s.total_roll > 0 ? fmtInt(s.total_roll) : <span className="text-grey-2">—</span>}</td>
                   <td>
                     <Badge tone={s.status === "diterima" ? "pos" : "warn"}>{s.status === "diterima" ? "Diterima" : "Dikirim"}</Badge>
                     {s.received_date && <div className="mt-0.5 text-[11px] text-grey-1">{fmtDate(s.received_date)}</div>}

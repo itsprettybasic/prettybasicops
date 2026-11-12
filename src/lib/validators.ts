@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { CHANNELS, IN_TYPES, OUT_TYPES } from "@/lib/constants";
+import { SHIPMENT_UNITS } from "@/lib/fabric";
 
 const dateStr = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Tanggal tidak valid");
 
@@ -122,8 +123,8 @@ export const fabricShipmentSchema = z.object({
       z.object({
         fabric_type: z.string().trim().min(1, "Jenis kain wajib diisi").max(80),
         color: z.string().trim().min(1, "Warna wajib diisi").max(60),
-        qty_kg: z.number().positive("Qty (kg) harus lebih dari 0").max(100000),
-        roll_count: z.number().int("Jumlah roll harus bilangan bulat").min(0).nullable(),
+        qty: z.number().positive("Qty harus lebih dari 0").max(100000),
+        unit: z.enum(SHIPMENT_UNITS),
         note: optStr(200),
       }),
     )

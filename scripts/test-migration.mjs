@@ -238,3 +238,16 @@ console.log('packing OK', (await db.query(`select * from pack_storage_summary()`
   assert(await throws(`update warehouses set is_active=false where id=$1`, [utama]), 'gudang utama tidak bisa nonaktif');
   console.log('gudang & transfer OK');
 }
+{
+  // ── Satuan kain per baris ─────────────────────────
+  const assert = (cond, msg) => { if (!cond) { console.error('FAIL:', msg); process.exit(1); } };
+  const v = (await db.query(`select id from vendors limit 1`)).rows[0].id;
+  const id = (await db.query(`select save_fabric_shipment(null,'SJ-UNIT-1','2026-11-12',$1,null,null,null,null,$2) id`, [v, JSON.stringify([{fabric_type:'Rayon',color:'Hitam',qty:25.5},{fabric_type:'Linen',color:'Putih',qty:10,unit:'yard'},{fabric_type:'Katun',color:'Navy',qty:3,unit:'roll'}])])).rows[0].id;
+  const s = (await db.query(`select total_kg, qty_by_unit from v_fabric_shipment_summary where id=$1`, [id])).rows[0];
+  assert(Number(s.total_kg) === 25.5 && Number(s.qty_by_unit.yard) === 10 && Number(s.qty_by_unit.roll) === 3 && Number(s.qty_by_unit.kg) === 25.5, 'total per satuan');
+  const units = (await db.query(`select unit from fabric_shipment_lines where shipment_id=$1 order by line_no`, [id])).rows.map(r => r.unit);
+  assert(units.join() === 'kg,yard,roll', 'default kg');
+  let bad = false; try { await db.query(`select save_fabric_shipment(null,'SJ-UNIT-2','2026-11-12',$1,null,null,null,null,$2)`, [v, JSON.stringify([{fabric_type:'Rayon',color:'Hitam',qty:1,unit:'lusin'}])]); } catch { bad = true; }
+  assert(bad, 'satuan tidak dikenal ditolak');
+  console.log('satuan kain OK');
+}

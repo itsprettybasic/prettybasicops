@@ -17,7 +17,8 @@ import {
   setFabricReceived,
   type FabricShipmentDetail,
 } from "@/app/actions/fabric";
-import { fmtDate, fmtInt, fmtKg, fmtTime } from "@/lib/format";
+import { fmtDate, fmtInt, fmtTime } from "@/lib/format";
+import { fmtFabricQty, fmtUnitTotals, sumByUnit } from "@/lib/fabric";
 import { FabricFormModal } from "./fabric-form-modal";
 
 export function FabricDetailModal({ id, onClose }: { id: string; onClose: () => void }) {
@@ -51,8 +52,7 @@ export function FabricDetailModal({ id, onClose }: { id: string; onClose: () => 
     };
   }, [id, reload]);
 
-  const totalKg = sj?.lines.reduce((s, l) => s + l.qty_kg, 0) ?? 0;
-  const totalRoll = sj?.lines.reduce((s, l) => s + (l.roll_count ?? 0), 0) ?? 0;
+  const totalText = fmtUnitTotals(sumByUnit(sj?.lines ?? []));
 
   async function markReceived(on: boolean) {
     if (!sj) return;
@@ -92,7 +92,7 @@ export function FabricDetailModal({ id, onClose }: { id: string; onClose: () => 
         sub={
           sj && (
             <span className="inline-flex flex-wrap items-center gap-2">
-              {sj.vendor.name} · {fmtInt(sj.lines.length)} baris · {fmtKg(totalKg)} kg
+              {sj.vendor.name} · {fmtInt(sj.lines.length)} baris · {totalText}
               <Badge tone={sj.status === "diterima" ? "pos" : "warn"}>
                 {sj.status === "diterima" ? "Diterima Vendor" : "Dikirim"}
               </Badge>
@@ -138,11 +138,8 @@ export function FabricDetailModal({ id, onClose }: { id: string; onClose: () => 
           <>
             <div className="mb-4 grid grid-cols-2 gap-3 md:grid-cols-4">
               <Info label="Tanggal Kirim">{fmtDate(sj.ship_date)}</Info>
-              <Info label="Total Berat">
-                <span className="num">{fmtKg(totalKg)} kg</span>
-              </Info>
-              <Info label="Total Roll">
-                <span className="num">{totalRoll > 0 ? fmtInt(totalRoll) : "—"}</span>
+              <Info label="Total Qty">
+                <span className="num">{totalText}</span>
               </Info>
               <Info label="Diterima Vendor">
                 {sj.status === "diterima" ? (
@@ -197,8 +194,7 @@ export function FabricDetailModal({ id, onClose }: { id: string; onClose: () => 
                     <th className="w-10">No</th>
                     <th>Jenis Kain</th>
                     <th>Warna</th>
-                    <th className="num">Qty (kg)</th>
-                    <th className="num">Roll</th>
+                    <th className="num">Qty</th>
                     <th>Keterangan</th>
                   </tr>
                 </thead>
@@ -208,8 +204,7 @@ export function FabricDetailModal({ id, onClose }: { id: string; onClose: () => 
                       <td className="num text-grey-1">{l.line_no}</td>
                       <td className="font-semibold text-ink">{l.fabric_type}</td>
                       <td>{l.color}</td>
-                      <td className="num font-semibold">{fmtKg(l.qty_kg)}</td>
-                      <td className="num">{l.roll_count ?? "—"}</td>
+                      <td className="num font-semibold whitespace-nowrap">{fmtFabricQty(l.qty, l.unit)}</td>
                       <td className="text-ink-3">{l.note ?? "—"}</td>
                     </tr>
                   ))}
@@ -217,8 +212,7 @@ export function FabricDetailModal({ id, onClose }: { id: string; onClose: () => 
                 <tfoot>
                   <tr>
                     <td colSpan={3}>Total: {fmtInt(sj.lines.length)} baris</td>
-                    <td className="num">{fmtKg(totalKg)} kg</td>
-                    <td className="num">{totalRoll > 0 ? fmtInt(totalRoll) : "—"}</td>
+                    <td className="num whitespace-nowrap">{totalText}</td>
                     <td />
                   </tr>
                 </tfoot>
@@ -275,7 +269,7 @@ export function FabricDetailModal({ id, onClose }: { id: string; onClose: () => 
           title="Hapus pengiriman kain?"
           message={
             <>
-              Surat jalan <strong>{sj.sj_no}</strong> ({fmtKg(totalKg)} kg ke {sj.vendor.name}) akan dihapus permanen.
+              Surat jalan <strong>{sj.sj_no}</strong> ({totalText} ke {sj.vendor.name}) akan dihapus permanen.
             </>
           }
           confirmLabel="Hapus"

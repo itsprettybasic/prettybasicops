@@ -18,7 +18,7 @@ export default async function PengirimanKainPage() {
         supabase
           .from("v_fabric_shipment_summary")
           .select(
-            "id, sj_no, ship_date, vendor_id, vendor_name, po_id, po_no, status, received_date, received_by, driver_name, vehicle_no, note, created_by_name, created_at, line_count, total_kg, total_roll, fabric_types, colors",
+            "id, sj_no, ship_date, vendor_id, vendor_name, po_id, po_no, status, received_date, received_by, driver_name, vehicle_no, note, created_by_name, created_at, line_count, qty_by_unit, fabric_types, colors",
           )
           .order("ship_date", { ascending: false })
           .order("created_at", { ascending: false })
@@ -27,7 +27,7 @@ export default async function PengirimanKainPage() {
       fetchAll<FabricLineRow>(() =>
         supabase
           .from("fabric_shipment_lines")
-          .select("shipment_id, line_no, fabric_type, color, qty_kg, roll_count, note")
+          .select("shipment_id, line_no, fabric_type, color, qty, unit, note")
           .order("shipment_id")
           .order("line_no"),
       ),

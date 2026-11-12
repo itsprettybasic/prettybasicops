@@ -1,7 +1,8 @@
 import { getFabricShipment } from "@/app/actions/fabric";
 import { PrintToolbar } from "@/components/print/print-toolbar";
 import { DocError, DocHeader, DocTable, InfoGrid, NoteBox, Paper, PartyBox, PrintedAt, Signatures } from "@/components/print/doc-parts";
-import { fmtDate, fmtInt, fmtKg } from "@/lib/format";
+import { fmtDate } from "@/lib/format";
+import { SHIPMENT_UNIT_LABEL, fmtUnitTotals, sumByUnit } from "@/lib/fabric";
 
 export const metadata = { title: "Surat Jalan · Pretty Basic" };
 
@@ -10,8 +11,7 @@ export default async function PrintSuratJalanPage({ params }: { params: Promise<
   const res = await getFabricShipment(id);
   if (!res.ok) return <DocError message={res.error} />;
   const sj = res.data;
-  const totalKg = sj.lines.reduce((s, l) => s + l.qty_kg, 0);
-  const totalRoll = sj.lines.reduce((s, l) => s + (l.roll_count ?? 0), 0);
+  const qtyFmt = new Intl.NumberFormat("id-ID", { maximumFractionDigits: 2 });
 
   return (
     <>
@@ -39,10 +39,10 @@ export default async function PrintSuratJalanPage({ params }: { params: Promise<
         <div className="mt-4 text-[#334155]">Bersama ini kami kirimkan kain dengan rincian sebagai berikut:</div>
 
         <DocTable
-          head={["No", "Jenis Kain", "Warna", "Qty (kg)", "Roll", "Keterangan"]}
-          align={["r", "l", "l", "r", "r", "l"]}
-          rows={sj.lines.map((l) => [l.line_no, l.fabric_type, l.color, fmtKg(l.qty_kg), l.roll_count ?? "—", l.note ?? ""])}
-          foot={["", "Total", "", `${fmtKg(totalKg)} kg`, totalRoll > 0 ? fmtInt(totalRoll) : "—", ""]}
+          head={["No", "Jenis Kain", "Warna", "Qty", "Satuan", "Keterangan"]}
+          align={["r", "l", "l", "r", "l", "l"]}
+          rows={sj.lines.map((l) => [l.line_no, l.fabric_type, l.color, qtyFmt.format(l.qty), SHIPMENT_UNIT_LABEL[l.unit] ?? l.unit, l.note ?? ""])}
+          foot={["", "Total", "", fmtUnitTotals(sumByUnit(sj.lines)), "", ""]}
         />
 
         <NoteBox label="Catatan" text={sj.note} />
