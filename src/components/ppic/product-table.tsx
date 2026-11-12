@@ -8,17 +8,14 @@ import { toast } from "sonner";
 import { useAppData } from "@/components/providers/app-data";
 import { Panel, Toolbar } from "@/components/ui/panel";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { Modal } from "@/components/ui/modal";
 import { SearchInput } from "@/components/ui/search-input";
 import { FilterChip } from "@/components/ui/filter-chip";
 import { EmptyRow, Pagination } from "@/components/ui/table-parts";
-import { ActiveSwitch } from "@/components/ppic/sku-form-modal";
-import { saveProduct, setProductActive } from "@/app/actions/products";
+import { saveProduct } from "@/app/actions/products";
 import { exportXlsx } from "@/lib/excel/download";
 import { fmtInt } from "@/lib/format";
 import type { SkuInfo } from "@/lib/data/ppic";
-import { cn } from "@/lib/cn";
 import { FABRIC_UNITS, fabricPerPcs, fabricSummary, type FabricUnit, type FabricUsage } from "@/lib/fabric";
 
 export interface ProductRow extends FabricUsage {
@@ -33,18 +30,25 @@ function fmtNum(n: number, max = 3) {
   return n.toLocaleString("id-ID", { maximumFractionDigits: max });
 }
 
-type ActiveFilter = "active" | "inactive" | "all";
+type FabricFilter = "all" | "filled" | "empty";
 
-const CHIPS: { key: ActiveFilter; label: string }[] = [
-  { key: "active", label: "Aktif" },
-  { key: "inactive", label: "Nonaktif" },
+const CHIPS: { key: FabricFilter; label: string }[] = [
   { key: "all", label: "Semua" },
+  { key: "filled", label: "Kain sudah diisi" },
+  { key: "empty", label: "Kain belum diisi" },
 ];
 
 function sortSkus(list: SkuInfo[]) {
   return [...list].sort(
     (a, b) => a.color.localeCompare(b.color, "id") || a.size.localeCompare(b.size, "id") || a.code.localeCompare(b.code),
   );
+}
+
+/** Kode dasar SKU produk, mis. ALBASKIRT dari ALBASKIRT-BLACK-SM. */
+function skuBase(list: SkuInfo[]): string | null {
+  if (list.length === 0) return null;
+  const heads = new Set(list.map((s) => s.code.split("-")[0]));
+  return heads.size === 1 ? [...heads][0] : sortSkus(list)[0].code;
 }
 
 export function ProductTable({
@@ -56,24 +60,20 @@ export function ProductTable({
   skus: SkuInfo[];
   loadError: string | null;
 }) {
-  const router = useRouter();
-  const { rowById, today } = useAppData();
+  const { today } = useAppData();
   const [query, setQuery] = useState("");
-  const [filter, setFilter] = useState<ActiveFilter>("active");
+  const [filter, setFilter] = useState<FabricFilter>("all");
   const [category, setCategory] = useState("");
   const [page, setPage] = useState(0);
   const [pageSize, setPageSize] = useState(25);
   const [editing, setEditing] = useState<ProductRow | null>(null);
   const [formOpen, setFormOpen] = useState(false);
   const [formKey, setFormKey] = useState(0);
-  const [pendingActive, setPendingActive] = useState<Record<string, boolean>>({});
   const [exporting, setExporting] = useState(false);
 
   useEffect(() => {
     if (loadError) toast.error(`Gagal memuat produk: ${loadError}`);
   }, [loadError]);
-
-  useEffect(() => setPendingActive({}), [products]);
 
   const skusByProduct = useMemo(() => {
     const m = new Map<string, SkuInfo[]>();
@@ -95,19 +95,6 @@ export function ProductTable({
     [products],
   );
 
-  const isActive = (p: ProductRow) => pendingActive[p.id] ?? p.is_active;
-
-  function stats(p: ProductRow) {
-    const list = skusByProduct.get(p.id) ?? [];
-    let active = 0;
-    let stock = 0;
-    for (const s of list) {
-      if (s.is_active) active++;
-      stock += rowById.get(s.id)?.stock ?? 0;
-    }
-    return { total: list.length, active, stock, list };
-  }
-
   const searched = useMemo(() => {
     const q = query.trim().toLowerCase();
     return products.filter((p) => {
@@ -119,15 +106,14 @@ export function ProductTable({
   }, [products, skusByProduct, query, category]);
 
   const counts = useMemo(() => {
-    const c: Record<ActiveFilter, number> = { active: 0, inactive: 0, all: searched.length };
-    for (const p of searched) c[(pendingActive[p.id] ?? p.is_active) ? "active" : "inactive"]++;
+    const c: Record<FabricFilter, number> = { all: searched.length, filled: 0, empty: 0 };
+    for (const p of searched) c[fabricPerPcs(p) !== null ? "filled" : "empty"]++;
     return c;
-  }, [searched, pendingActive]);
+  }, [searched]);
 
   const visible = useMemo(
-    () =>
-      filter === "all" ? searched : searched.filter((p) => (pendingActive[p.id] ?? p.is_active) === (filter === "active")),
-    [searched, filter, pendingActive],
+    () => (filter === "all" ? searched : searched.filter((p) => (fabricPerPcs(p) !== null) === (filter === "filled"))),
+    [searched, filter],
   );
   const pageRows = visible.slice(page * pageSize, (page + 1) * pageSize);
   const resetPage = () => setPage(0);
@@ -138,22 +124,6 @@ export function ProductTable({
     setFormOpen(true);
   }
 
-  async function toggleActive(p: ProductRow, next: boolean) {
-    setPendingActive((s) => ({ ...s, [p.id]: next }));
-    const res = await setProductActive(p.id, next);
-    if (!res.ok) {
-      setPendingActive((s) => {
-        const copy = { ...s };
-        delete copy[p.id];
-        return copy;
-      });
-      toast.error(`Gagal mengubah status: ${res.error}`);
-      return;
-    }
-    toast.success(`${p.name} ${next ? "diaktifkan" : "dinonaktifkan"} beserta semua SKU-nya`);
-    router.refresh();
-  }
-
   async function exportExcel() {
     setExporting(true);
     try {
@@ -161,6 +131,7 @@ export function ProductTable({
         name: "Database Produk",
         rows: visible,
         columns: [
+          { header: "SKU", width: 18, value: (p) => skuBase(skusByProduct.get(p.id) ?? []) ?? "" },
           { header: "Produk", width: 28, value: (p) => p.name },
           { header: "Kategori", width: 16, value: (p) => p.category ?? "" },
           { header: "Jenis Kain", width: 16, value: (p) => p.fabric_type ?? "" },
@@ -168,10 +139,7 @@ export function ProductTable({
           { header: "Kain", numFmt: "#,##0.###", value: (p) => p.fabric_qty },
           { header: "Jadi Pcs", numFmt: "#,##0.##", value: (p) => p.fabric_pcs },
           { header: "Kain per Pcs", width: 14, numFmt: "#,##0.000", value: (p) => fabricPerPcs(p) },
-          { header: "SKU Aktif", value: (p) => stats(p).active },
-          { header: "Total SKU", value: (p) => stats(p).total },
-          { header: "Stock", numFmt: "#,##0", value: (p) => stats(p).stock },
-          { header: "Status", value: (p) => (isActive(p) ? "Aktif" : "Nonaktif") },
+          { header: "Jumlah SKU", value: (p) => (skusByProduct.get(p.id) ?? []).length },
         ],
       });
     } catch (e) {
@@ -181,11 +149,13 @@ export function ProductTable({
     }
   }
 
+  const dash = <span className="text-grey-2">—</span>;
+
   return (
     <>
       <Panel
         title="Daftar Produk"
-        sub={`${fmtInt(products.length)} produk · ${fmtInt(skus.length)} SKU · Klik baris untuk edit nama, kategori & kode SKU`}
+        sub={`${fmtInt(products.length)} produk · Klik baris untuk edit nama, SKU & pemakaian kain`}
         actions={
           <>
             <Button onClick={exportExcel} loading={exporting} disabled={visible.length === 0}>
@@ -244,66 +214,48 @@ export function ProductTable({
         <table className="data-table">
           <thead>
             <tr>
+              <th className="num w-[52px]">No</th>
+              <th>SKU</th>
               <th>Produk</th>
               <th>Kategori</th>
-              <th>Contoh Kode SKU</th>
-              <th>Pemakaian Kain</th>
-              <th className="num">SKU Aktif</th>
-              <th className="num">Stock</th>
-              <th>Status</th>
-              <th className="w-[70px]">Aktif</th>
+              <th>Jenis Kain</th>
+              <th>Satuan</th>
+              <th className="num">Kain</th>
+              <th className="num">Jadi (pcs)</th>
+              <th className="num">Kain / pcs</th>
             </tr>
           </thead>
           <tbody>
             {pageRows.length === 0 && (
-              <EmptyRow colSpan={8}>{products.length === 0 ? "Belum ada produk." : "Tidak ada produk yang cocok dengan filter."}</EmptyRow>
+              <EmptyRow colSpan={9}>{products.length === 0 ? "Belum ada produk." : "Tidak ada produk yang cocok dengan filter."}</EmptyRow>
             )}
-            {pageRows.map((p) => {
-              const active = isActive(p);
-              const st = stats(p);
-              const sample = sortSkus(st.list)[0]?.code;
+            {pageRows.map((p, i) => {
+              const base = skuBase(skusByProduct.get(p.id) ?? []);
+              const per = fabricPerPcs(p);
               return (
-                <tr key={p.id} className={cn("clickable", !active && "text-grey-1")} onClick={() => openForm(p)}>
-                  <td className={cn("font-semibold", active ? "text-ink" : "text-grey-1")}>{p.name}</td>
-                  <td className={cn(!active && "!text-grey-1")}>{p.category ?? <span className="text-grey-2">—</span>}</td>
+                <tr key={p.id} className="clickable" onClick={() => openForm(p)}>
+                  <td className="num text-grey-1">{fmtInt(page * pageSize + i + 1)}</td>
                   <td>
-                    {sample ? (
-                      <span className={cn("text-[12px] font-semibold tracking-[0.01em]", active ? "text-ink-3" : "text-grey-2")}>
-                        {sample}
-                        {st.total > 1 && <span className="font-normal text-grey-1"> +{st.total - 1}</span>}
-                      </span>
+                    {base ? (
+                      <span className="text-[12px] font-semibold tracking-[0.01em] text-ink-3">{base}</span>
                     ) : (
-                      <span className="text-grey-2">Belum ada SKU</span>
+                      <span className="text-[12px] text-grey-2">Belum ada SKU</span>
                     )}
                   </td>
-                  <td className={cn(!active && "!text-grey-1")}>
-                    {fabricPerPcs(p) !== null ? (
-                      <div className="leading-tight">
-                        <div className="text-[12.5px]">
-                          {p.fabric_type && <span className="font-semibold">{p.fabric_type} · </span>}
-                          {fmtNum(p.fabric_qty!)} {p.fabric_unit} → {fmtNum(p.fabric_pcs!, 2)} pcs
-                        </div>
-                        <div className="text-[11px] text-grey-1">
-                          {fmtNum(fabricPerPcs(p)!)} {p.fabric_unit}/pcs
-                        </div>
-                      </div>
+                  <td className="font-semibold text-ink">{p.name}</td>
+                  <td>{p.category ?? dash}</td>
+                  <td>{p.fabric_type ?? dash}</td>
+                  <td>{p.fabric_unit ?? dash}</td>
+                  <td className="num">{p.fabric_qty != null ? fmtNum(p.fabric_qty) : dash}</td>
+                  <td className="num">{p.fabric_pcs != null ? fmtNum(p.fabric_pcs, 2) : dash}</td>
+                  <td className="num">
+                    {per !== null ? (
+                      <span className="font-semibold text-ink">
+                        {fmtNum(per)} {p.fabric_unit}
+                      </span>
                     ) : (
                       <span className="text-[12px] text-warn-text">Belum diisi</span>
                     )}
-                  </td>
-                  <td className={cn("num", !active && "!text-grey-1")}>
-                    {fmtInt(st.active)}
-                    <span className="text-grey-1"> / {fmtInt(st.total)}</span>
-                  </td>
-                  <td className={cn("num", !active && "!text-grey-1")}>{fmtInt(st.stock)}</td>
-                  <td>{active ? <Badge tone="pos">Aktif</Badge> : <Badge tone="grey">Nonaktif</Badge>}</td>
-                  <td>
-                    <ActiveSwitch
-                      checked={active}
-                      label={active ? "Nonaktifkan produk" : "Aktifkan produk"}
-                      disabled={pendingActive[p.id] !== undefined && pendingActive[p.id] !== p.is_active}
-                      onChange={(next) => toggleActive(p, next)}
-                    />
                   </td>
                 </tr>
               );
@@ -344,7 +296,6 @@ interface SkuDraft {
   code: string;
   color: string;
   size: string;
-  is_active: boolean;
 }
 
 function ProductFormModal({
@@ -369,9 +320,8 @@ function ProductFormModal({
   const [fabricPcs, setFabricPcs] = useState(product?.fabric_pcs != null ? String(product.fabric_pcs) : "");
   const [name, setName] = useState(product?.name ?? "");
   const [category, setCategory] = useState(product?.category ?? "");
-  const [active, setActive] = useState(product?.is_active ?? true);
   const [drafts, setDrafts] = useState<SkuDraft[]>(() =>
-    skus.map((s) => ({ id: s.id, code: s.code, color: s.color, size: s.size, is_active: s.is_active })),
+    skus.map((s) => ({ id: s.id, code: s.code, color: s.color, size: s.size })),
   );
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
@@ -379,12 +329,6 @@ function ProductFormModal({
   function updateDraft(id: string, patch: Partial<SkuDraft>) {
     setDrafts((list) => list.map((d) => (d.id === id ? { ...d, ...patch } : d)));
     setError(null);
-  }
-
-  function changeProductActive(next: boolean) {
-    setActive(next);
-    // Produk nonaktif → semua SKU nonaktif; diaktifkan lagi → semua SKU aktif (bisa diubah per SKU)
-    setDrafts((list) => list.map((d) => ({ ...d, is_active: next })));
   }
 
   async function submit() {
@@ -412,7 +356,6 @@ function ProductFormModal({
       id: product?.id ?? null,
       name,
       category,
-      is_active: active,
       skus: drafts,
     });
     setSaving(false);
@@ -425,7 +368,6 @@ function ProductFormModal({
     router.refresh();
   }
 
-  const activeCount = drafts.filter((d) => d.is_active).length;
   const previewQty = Number(fabricQty.replace(",", "."));
   const previewPcs = Number(fabricPcs.replace(",", "."));
   const preview =
@@ -570,27 +512,17 @@ function ProductFormModal({
         </div>
       </div>
 
-      <div className="mb-4 flex items-center justify-between rounded-[10px] border border-line px-4 py-3">
-        <div>
-          <div className="text-[13px] font-semibold text-ink">Produk aktif</div>
-          <div className="text-[11.5px] text-grey-1">
-            Nonaktif = produk & semua SKU-nya tidak dihitung di PPIC dan tidak muncul di pilihan SKU. Riwayat tetap tersimpan.
-          </div>
-        </div>
-        <ActiveSwitch checked={active} onChange={changeProductActive} label="Produk aktif" />
-      </div>
-
       {product && (
         <div>
           <div className="mb-2 flex items-baseline justify-between gap-3">
             <div className="text-[13px] font-semibold text-ink">
               SKU produk ini{" "}
               <span className="font-normal text-grey-1">
-                · {fmtInt(activeCount)} aktif dari {fmtInt(drafts.length)}
+                · {fmtInt(drafts.length)} SKU
               </span>
             </div>
             <Link href="/master-sku" className="text-[12px] font-semibold text-primary-2">
-              + Tambah SKU di Master SKU →
+              Tambah SKU / atur aktif di Master SKU →
             </Link>
           </div>
           {drafts.length === 0 ? (
@@ -605,7 +537,6 @@ function ProductFormModal({
                     <th>Kode SKU</th>
                     <th>Warna</th>
                     <th>Size</th>
-                    <th className="w-[70px]">Aktif</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -630,14 +561,6 @@ function ProductFormModal({
                           className="form-input !py-1.5"
                           value={d.size}
                           onChange={(e) => updateDraft(d.id, { size: e.target.value })}
-                        />
-                      </td>
-                      <td>
-                        <ActiveSwitch
-                          checked={d.is_active}
-                          disabled={!active}
-                          label={d.is_active ? "Nonaktifkan SKU" : "Aktifkan SKU"}
-                          onChange={(next) => updateDraft(d.id, { is_active: next })}
                         />
                       </td>
                     </tr>

@@ -22,7 +22,6 @@ const productSchema = z.object({
     .max(60)
     .transform((v) => (v === "" ? null : v))
     .nullable(),
-  is_active: z.boolean(),
   fabric_type: z
     .string()
     .trim()
@@ -43,7 +42,6 @@ const productSchema = z.object({
         .regex(/^[A-Z0-9-]+$/, "Kode SKU hanya huruf besar, angka, dan tanda -"),
       color: z.string().trim().min(1, "Warna wajib diisi").max(60),
       size: z.string().trim().min(1, "Size wajib diisi").max(30),
-      is_active: z.boolean(),
     }),
   ),
 });
@@ -51,8 +49,8 @@ const productSchema = z.object({
 export type ProductInput = z.input<typeof productSchema>;
 
 /**
- * Tambah produk (id = null) atau update produk beserta SKU-nya.
- * Produk nonaktif → semua SKU-nya ikut nonaktif (tidak dihitung di PPIC).
+ * Tambah produk (id = null) atau update produk beserta kode/warna/size SKU-nya.
+ * Status aktif/nonaktif diatur per SKU di Master SKU, tidak di sini.
  */
 export async function saveProduct(input: ProductInput): Promise<ActionResult<{ id: string }>> {
   const parsed = productSchema.safeParse({
@@ -89,7 +87,6 @@ export async function saveProduct(input: ProductInput): Promise<ActionResult<{ i
   const values = {
     name: d.name,
     category: d.category,
-    is_active: d.is_active,
     fabric_type: d.fabric_type,
     fabric_unit: d.fabric_unit,
     fabric_qty: d.fabric_qty,
@@ -108,18 +105,17 @@ export async function saveProduct(input: ProductInput): Promise<ActionResult<{ i
   if (d.id && d.skus.length > 0) {
     const current = await supabase
       .from("skus")
-      .select("id, code, color, size, is_active")
+      .select("id, code, color, size")
       .eq("product_id", productId);
     if (current.error) return fail(current.error.message);
     const byId = new Map((current.data ?? []).map((r) => [r.id as string, r]));
     for (const s of d.skus) {
       const cur = byId.get(s.id);
       if (!cur) continue; // bukan SKU produk ini
-      const active = d.is_active ? s.is_active : false;
-      if (cur.code === s.code && cur.color === s.color && cur.size === s.size && cur.is_active === active) continue;
+      if (cur.code === s.code && cur.color === s.color && cur.size === s.size) continue;
       const up = await supabase
         .from("skus")
-        .update({ code: s.code, color: s.color, size: s.size, is_active: active })
+        .update({ code: s.code, color: s.color, size: s.size })
         .eq("id", s.id);
       if (up.error) {
         if (up.error.code === "23505") return fail(`Kode SKU ${s.code} sudah dipakai SKU lain`);
@@ -130,15 +126,4 @@ export async function saveProduct(input: ProductInput): Promise<ActionResult<{ i
 
   revalidatePath("/", "layout");
   return { ok: true, data: { id: productId } };
-}
-
-/** Aktif/nonaktifkan produk sekaligus semua SKU-nya. */
-export async function setProductActive(id: string, isActive: boolean): Promise<ActionResult> {
-  const supabase = await createClient();
-  const p = await supabase.from("products").update({ is_active: isActive }).eq("id", id);
-  if (p.error) return fail(p.error.message);
-  const s = await supabase.from("skus").update({ is_active: isActive }).eq("product_id", id);
-  if (s.error) return fail(s.error.message);
-  revalidatePath("/", "layout");
-  return { ok: true, data: undefined };
 }

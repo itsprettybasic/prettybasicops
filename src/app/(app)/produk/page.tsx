@@ -34,7 +34,7 @@ export default async function ProdukPage() {
 
   return (
     <div>
-      <PageHeader title="Database Produk" sub="Daftar semua produk · Produk nonaktif beserta SKU-nya tidak dihitung di PPIC" />
+      <PageHeader title="Database Produk" sub="Data produk untuk hitung kebutuhan kain · Aktif/nonaktif diatur per SKU di Master SKU" />
       <ProductTable products={products} skus={skus} loadError={loadError} />
     </div>
   );
