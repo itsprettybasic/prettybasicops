@@ -300,6 +300,12 @@ export function DocumentDetailModal({
                   Sisa di PO <strong>{doc.po_no}</strong> kembali terbuka.
                 </>
               ) : null}
+              {doc.source === "opname" && !voided && (
+                <div className="mt-2 rounded-lg bg-warn-tint px-3 py-2 text-[12px] font-semibold text-warn-text">
+                  Ini hasil Stock Opname. Kalau dihapus, stock SKU-nya kembali ke angka sebelum opname.
+                </div>
+              )}
+              <div className="mt-2 text-xs text-grey-1">Salinannya tetap bisa dilihat di &quot;Riwayat dihapus&quot;.</div>
             </>
           }
           confirmLabel="Hapus"

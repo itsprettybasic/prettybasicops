@@ -254,18 +254,6 @@ function validateStockRows(
     });
   }
 
-  // Peringatan stock minus (barang keluar): akumulasi per SKU dari stock sekarang
-  if (!isIn) {
-    const remaining = new Map<string, number>();
-    for (const row of out) {
-      if (row.errors.length || !row.stock?.skuId || !row.stock.qty) continue;
-      const id = row.stock.skuId;
-      const current = remaining.get(id) ?? lookups.activeByCode.get(row.raw[3])?.stock ?? 0;
-      const next = current - row.stock.qty;
-      remaining.set(id, next);
-      if (next < 0) row.warnings.push(`Stock jadi minus (${fmtSigned(next)})`);
-    }
-  }
   return out;
 }
 

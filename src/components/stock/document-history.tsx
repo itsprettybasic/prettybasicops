@@ -14,6 +14,7 @@ import { InfoBanner } from "@/components/ui/info-banner";
 import { EmptyRow, Pagination, SkeletonRows } from "@/components/ui/table-parts";
 import { useAppData } from "@/components/providers/app-data";
 import { DocumentDetailModal } from "@/components/stock/document-detail-modal";
+import { DeletedDocumentsModal } from "@/components/stock/deleted-documents-modal";
 import {
   CHANNEL_LABEL,
   IN_TYPES,
@@ -72,6 +73,7 @@ export function DocumentHistory({ data, receipts = false }: { data: DocumentHist
   const [to, setTo] = useState(data.to);
   const [page, setPage] = useState(0);
   const [pageSize, setPageSize] = useState(25);
+  const [showDeleted, setShowDeleted] = useState(false);
   const [detail, setDetail] = useState<{ id: string; action?: "edit" | "delete" } | null>(null);
 
   const indexed = useMemo(() => data.documents.map((d) => ({ doc: d, hay: searchText(d) })), [data.documents]);
@@ -274,8 +276,19 @@ export function DocumentHistory({ data, receipts = false }: { data: DocumentHist
             Tampilkan yang dibatalkan
             {voidedCount > 0 && <span className="num text-grey-2">({fmtInt(voidedCount)})</span>}
           </label>
-          <span>
+          <span className="flex flex-wrap items-center justify-end gap-x-4 gap-y-1">
+            <button
+              type="button"
+              onClick={() => setShowDeleted(true)}
+              className="inline-flex cursor-pointer items-center gap-1 font-semibold text-grey-1 hover:text-primary-2"
+            >
+              <Trash2 className="h-3 w-3" />
+              Riwayat dihapus
+              {data.deleted.length > 0 && <span className="num text-grey-2">({fmtInt(data.deleted.length)})</span>}
+            </button>
+            <span>
             {fmtDate(data.from)} – {fmtDate(data.to)}
+            </span>
           </span>
         </div>
 
@@ -412,6 +425,17 @@ export function DocumentHistory({ data, receipts = false }: { data: DocumentHist
           />
         )}
       </Panel>
+
+      {showDeleted && (
+        <DeletedDocumentsModal
+          open
+          onOpenChange={setShowDeleted}
+          items={data.deleted}
+          isIn={isIn}
+          from={data.from}
+          to={data.to}
+        />
+      )}
 
       {detail && (
         <DocumentDetailModal

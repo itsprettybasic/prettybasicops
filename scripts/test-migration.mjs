@@ -180,3 +180,15 @@ console.log('packing OK', (await db.query(`select * from pack_storage_summary()`
   assert(await stock() === before, 'hapus mengembalikan stock');
   console.log('edit/hapus semua catatan OK');
 }
+{
+  // ── Log penghapusan ───────────────────────────────
+  const assert = (cond, msg) => { if (!cond) { console.error('FAIL:', msg); process.exit(1); } };
+  await db.query(`select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-00000000000a', false)`);
+  const id = (await db.query(`select create_stock_document('out','giveaway','2026-11-05',null,null,'endorse','manual',$1) id`, [JSON.stringify([{sku_id: sku, qty: 4}])])).rows[0].id;
+  await db.query(`select delete_stock_document($1)`, [id]);
+  const log = (await db.query(`select * from stock_document_deletions where document_id=$1`, [id])).rows[0];
+  assert(log && log.type === 'giveaway' && log.note === 'endorse' && log.total_qty === 4 && log.sku_count === 1, 'log hapus tersimpan');
+  assert(log.lines[0].code === 'SOLEASKORT-BLACK-XSS' && log.lines[0].label === 'Solea Mini Skort · Black · XS/S', 'baris SKU di log');
+  assert(log.deleted_by_name === 'Jose Putra', 'nama penghapus');
+  console.log('log hapus OK');
+}
