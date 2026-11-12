@@ -14,7 +14,7 @@ import {
   type RowSelectionState,
   type SortingState,
 } from "@tanstack/react-table";
-import { Download } from "lucide-react";
+import { CheckSquare, Download, Plus } from "lucide-react";
 import { toast } from "sonner";
 import type { PpicRow } from "@/lib/data/ppic";
 import { STATUS_PRIORITY, type PpicStatus, type RankClass } from "@/lib/ppic";
@@ -87,6 +87,8 @@ export function PpicTable({ rows, today }: { rows: PpicRow[]; today: string }) {
   const [rowSelection, setRowSelection] = useState<RowSelectionState>({});
   const [pagination, setPagination] = useState({ pageIndex: 0, pageSize: 25 });
   const [batchOpen, setBatchOpen] = useState(false);
+  /** Mode pilih: kolom pertama jadi checkbox (default: nomor baris) */
+  const [selecting, setSelecting] = useState(false);
   const [batchSkuIds, setBatchSkuIds] = useState<string[]>([]);
 
   const data = useMemo(() => [...rows].sort(defaultCompare), [rows]);
@@ -261,6 +263,7 @@ export function PpicTable({ rows, today }: { rows: PpicRow[]; today: string }) {
       toast("Tidak ada SKU berstatus HABIS atau PRODUKSI");
       return;
     }
+    setSelecting(true);
     setRowSelection((sel) => {
       const next = { ...sel };
       for (const r of priority) next[r.id] = true;
@@ -269,11 +272,8 @@ export function PpicTable({ rows, today }: { rows: PpicRow[]; today: string }) {
     toast.success(`${fmtInt(priority.length)} SKU HABIS & PRODUKSI dicentang`);
   }
 
+  /** Tanpa centang → form PO kosong, SKU dipilih satu per satu di dalam form. */
   function openBatch() {
-    if (selectedIds.length === 0) {
-      toast.error("Pilih minimal 1 SKU dulu");
-      return;
-    }
     // Urutkan sesuai prioritas default supaya isi modal rapi
     const order = new Map(data.map((r, i) => [r.id, i]));
     setBatchSkuIds([...selectedIds].sort((a, b) => (order.get(a) ?? 0) - (order.get(b) ?? 0)));
@@ -380,7 +380,8 @@ export function PpicTable({ rows, today }: { rows: PpicRow[]; today: string }) {
               <Download className="h-3.5 w-3.5" /> Export Excel
             </Button>
             <Button variant="blue" onClick={openBatch}>
-              Buat PO ({fmtInt(selectedIds.length)})
+              <Plus className="h-3.5 w-3.5" />
+              {selectedIds.length > 0 ? `Buat PO (${fmtInt(selectedIds.length)} SKU)` : "Buat PO"}
             </Button>
           </>
         }
@@ -439,22 +440,41 @@ export function PpicTable({ rows, today }: { rows: PpicRow[]; today: string }) {
           </div>
         </Toolbar>
 
-        <div className="mb-3 flex items-center gap-3 text-[12px] text-grey-1">
-          <Button size="sm" onClick={checkPriority}>
-            Centang semua HABIS & PRODUKSI
-          </Button>
-          {selectedIds.length > 0 && (
+        <div className="mb-3 flex flex-wrap items-center gap-x-3 gap-y-2 text-[12px] text-grey-1">
+          {selecting ? (
             <>
+              <Button
+                size="sm"
+                onClick={() => {
+                  setSelecting(false);
+                  setRowSelection({});
+                }}
+              >
+                Batal Pilih
+              </Button>
+              <Button size="sm" onClick={checkPriority}>
+                Centang semua HABIS & PRODUKSI
+              </Button>
               <span>
                 <span className="num font-semibold text-ink-2">{fmtInt(selectedIds.length)}</span> SKU dicentang
+                {selectedIds.length === 0 && " · klik baris untuk mencentang"}
               </span>
-              <button
-                type="button"
-                className="cursor-pointer font-semibold text-primary-2 hover:underline"
-                onClick={() => setRowSelection({})}
-              >
-                Hapus centang
-              </button>
+              {selectedIds.length > 0 && (
+                <button
+                  type="button"
+                  className="cursor-pointer font-semibold text-primary-2 hover:underline"
+                  onClick={() => setRowSelection({})}
+                >
+                  Hapus centang
+                </button>
+              )}
+            </>
+          ) : (
+            <>
+              <Button size="sm" onClick={() => setSelecting(true)}>
+                <CheckSquare className="h-3.5 w-3.5" /> Pilih SKU
+              </Button>
+              <span>Pilih beberapa SKU lalu Buat PO, atau langsung klik Buat PO dan tambah SKU di form.</span>
             </>
           )}
         </div>
@@ -466,8 +486,8 @@ export function PpicTable({ rows, today }: { rows: PpicRow[]; today: string }) {
                 {hg.headers.map((h) => {
                   if (h.column.id === "select") {
                     return (
-                      <th key={h.id} className="w-[28px]">
-                        {flexRender(h.column.columnDef.header, h.getContext())}
+                      <th key={h.id} className={cn("w-[28px]", !selecting && "num")}>
+                        {selecting ? flexRender(h.column.columnDef.header, h.getContext()) : "#"}
                       </th>
                     );
                   }
@@ -517,14 +537,21 @@ export function PpicTable({ rows, today }: { rows: PpicRow[]; today: string }) {
                 )}
               </EmptyRow>
             )}
-            {pageRows.map((row) => (
+            {pageRows.map((row, i) => (
               <tr
                 key={row.id}
-                className={cn("clickable", row.getIsSelected() && "bg-primary-tint/50")}
-                onClick={() => openSkuDetail(row.id)}
+                className={cn("clickable", selecting && row.getIsSelected() && "bg-primary-tint/50")}
+                onClick={() => (selecting ? row.toggleSelected() : openSkuDetail(row.id))}
               >
                 {row.getVisibleCells().map((cell) => {
                   const num = (cell.column.columnDef.meta as { num?: boolean } | undefined)?.num;
+                  if (cell.column.id === "select" && !selecting) {
+                    return (
+                      <td key={cell.id} className="num text-[12px] text-grey-2">
+                        {fmtInt(pagination.pageIndex * pagination.pageSize + i + 1)}
+                      </td>
+                    );
+                  }
                   return (
                     <td
                       key={cell.id}
@@ -555,7 +582,10 @@ export function PpicTable({ rows, today }: { rows: PpicRow[]; today: string }) {
           open={batchOpen}
           onOpenChange={setBatchOpen}
           skuIds={batchSkuIds}
-          onSaved={() => setRowSelection({})}
+          onSaved={() => {
+            setRowSelection({});
+            setSelecting(false);
+          }}
         />
       )}
     </>

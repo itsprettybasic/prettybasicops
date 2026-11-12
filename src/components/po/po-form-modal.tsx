@@ -10,6 +10,8 @@ import { Button } from "@/components/ui/button";
 import { Combobox, type ComboOption } from "@/components/ui/combobox";
 import { InfoBanner } from "@/components/ui/info-banner";
 import { SkuCell } from "@/components/ui/table-parts";
+import { StatusBadge } from "@/components/ui/badge";
+import { STATUS_PRIORITY } from "@/lib/ppic";
 import { useAppData } from "@/components/providers/app-data";
 import { getNextPoNo, listVendors, savePurchaseOrder, type PoDetail, type Vendor } from "@/app/actions/po";
 import { poSchema } from "@/lib/validators";
@@ -54,7 +56,7 @@ export function PoFormModal({
   onSaved?: (id: string) => void;
 }) {
   const router = useRouter();
-  const { today, params, rowById, skuOptions } = useAppData();
+  const { today, params, rows, rowById, skuOptions } = useAppData();
   const editing = !!po;
 
   const [poNo, setPoNo] = useState(po?.po_no ?? "");
@@ -150,6 +152,24 @@ export function PoFormModal({
   function addSku(id: string | null) {
     if (!id || lineIds.has(id)) return;
     setLines((ls) => [...ls, newLine(id)]);
+  }
+
+  /** Tambah sekaligus semua SKU HABIS & PRODUKSI yang belum ada di PO (urut prioritas, saran terbesar dulu). */
+  function addPriority() {
+    const add = rows
+      .filter((r) => (r.status === "HABIS" || r.status === "PRODUKSI") && !lineIds.has(r.id))
+      .sort((a, b) => STATUS_PRIORITY[a.status] - STATUS_PRIORITY[b.status] || b.suggestion - a.suggestion);
+    if (add.length === 0) {
+      toast("Semua SKU HABIS & PRODUKSI sudah ada di PO");
+      return;
+    }
+    setLines((ls) => [...ls, ...add.map((r) => newLine(r.id))]);
+    toast.success(`${fmtInt(add.length)} SKU ditambahkan`);
+  }
+
+  /** Hapus semua baris (kecuali yang sudah ada penerimaannya). */
+  function clearLines() {
+    setLines((ls) => ls.filter((l) => l.received > 0));
   }
 
   async function save(status: "draft" | "open") {
@@ -283,7 +303,19 @@ export function PoFormModal({
         </div>
 
         <div className="mt-1 mb-2 flex flex-col items-stretch justify-between gap-2 sm:flex-row sm:items-end sm:gap-4">
-          <div className="text-[11px] font-bold tracking-[0.06em] text-grey-1 uppercase">SKU dalam PO</div>
+          <div>
+            <div className="text-[11px] font-bold tracking-[0.06em] text-grey-1 uppercase">SKU dalam PO</div>
+            <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-[12px]">
+              <button type="button" onClick={addPriority} className="cursor-pointer font-semibold text-primary-2 hover:underline">
+                + Tambah semua HABIS & PRODUKSI
+              </button>
+              {lines.some((l) => l.received === 0) && (
+                <button type="button" onClick={clearLines} className="cursor-pointer font-semibold text-grey-1 hover:text-neg">
+                  Kosongkan
+                </button>
+              )}
+            </div>
+          </div>
           <div className="w-full sm:w-[340px]">
             <Combobox
               size="sm"
@@ -312,7 +344,8 @@ export function PoFormModal({
               {parsed.length === 0 && (
                 <tr>
                   <td colSpan={6} className="py-6 text-center text-[12.5px] text-grey-1">
-                    Belum ada SKU. Tambahkan lewat kolom di atas.
+                    Belum ada SKU. Ketik nama / kode di kolom &quot;Tambah SKU&quot; di atas, atau klik &quot;Tambah semua HABIS &amp;
+                    PRODUKSI&quot;.
                   </td>
                 </tr>
               )}
@@ -320,6 +353,19 @@ export function PoFormModal({
                 <tr key={l.skuId}>
                   <td>
                     <SkuCell label={l.label} code={l.code} />
+                    {(() => {
+                      const r = rowById.get(l.skuId);
+                      if (!r) return null;
+                      return (
+                        <div className="mt-1 flex items-center gap-2 text-[11px] text-grey-1">
+                          <StatusBadge status={r.status} />
+                          <span>
+                            Stok <span className={cn("num font-semibold", r.stock <= 0 ? "text-neg" : "text-ink-3")}>{fmtInt(r.stock)}</span>
+                            {r.inProduction > 0 && <> · dalam PO {fmtInt(r.inProduction)}</>}
+                          </span>
+                        </div>
+                      );
+                    })()}
                     {l.received > 0 && (
                       <div className={cn("text-[11px]", l.belowReceived ? "font-semibold text-neg" : "text-pos")}>
                         Sudah diterima {fmtInt(l.received)} pcs
