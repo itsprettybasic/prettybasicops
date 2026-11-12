@@ -61,16 +61,11 @@ const NAV: {
     section: "Gudang",
     items: [
       { href: "/stock", label: "Stock Live", icon: Table },
+      { href: "/gudang", label: "Stock per Gudang", icon: Warehouse },
       { href: "/barang-masuk", label: "Barang Masuk", icon: ArrowDown },
       { href: "/barang-keluar", label: "Barang Keluar", icon: ArrowUp },
-      { href: "/stock-opname", label: "Stock Opname", icon: ClipboardCheck },
-    ],
-  },
-  {
-    section: "Gudang",
-    items: [
-      { href: "/gudang", label: "Stock per Gudang", icon: Warehouse },
       { href: "/transfer", label: "Transfer Stock", icon: Repeat },
+      { href: "/stock-opname", label: "Stock Opname", icon: ClipboardCheck },
     ],
   },
   {
